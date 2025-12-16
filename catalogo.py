@@ -1094,8 +1094,3 @@ CATALOGO_INDICADORES = {
         }
     }
 }
-            ]
-        }
-    }
-
-}
