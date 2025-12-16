@@ -125,10 +125,20 @@ def generar_uid(row, pais_nombre, anio_informe, derecho_seleccionado):
         return f"{code_pais}-{code_cat}-{code_anio}-{code_ref}-{code_der}"
     except: return "ERR"
 
+# --- CAMBIO EN app.py ---
+
 @st.cache_resource
 def conectar_google_sheet():
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    credentials = Credentials.from_service_account_file("credentials.json", scopes=scopes)
+    
+    # CAMBIO AQUÍ: Usamos st.secrets en lugar de archivo .json
+    if "gcp_service_account" in st.secrets:
+        creds_dict = st.secrets["gcp_service_account"]
+        credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    else:
+        # Fallback por si lo corres local y tienes el archivo (opcional)
+        credentials = Credentials.from_service_account_file("credentials.json", scopes=scopes)
+        
     gc = gspread.authorize(credentials)
     sh = gc.open("Protocolo San Salvador")
     try: return sh.worksheet("Base_Datos")
@@ -646,4 +656,5 @@ elif modo_app == T["nav_view"]:
             st.warning("La hoja de cálculo está vacía o no se pudo leer.")
             
     except Exception as e:
+
         st.error(f"Error al conectar con Google Sheets: {e}")
