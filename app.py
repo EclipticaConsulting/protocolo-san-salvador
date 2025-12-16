@@ -12,7 +12,7 @@ import base64
 
 # --- IMPORTACIÓN DE DATOS ---
 try:
-    from catalogo import (
+    from catalogo import (  # <--- TIENE QUE HABER 4 ESPACIOS ANTES DE "from"
         CATALOGO_INDICADORES, 
         LISTA_AGRUPAMIENTOS, 
         LISTA_UNIDADES, 
@@ -24,7 +24,6 @@ try:
 except ImportError:
     st.error("❌ Error Crítico: No se encontró el archivo 'catalogo.py'.")
     st.stop()
-
 # Función auxiliar para imágenes
 def get_base64_image(image_path):
     try:
@@ -658,3 +657,4 @@ elif modo_app == T["nav_view"]:
     except Exception as e:
 
         st.error(f"Error al conectar con Google Sheets: {e}")
+
