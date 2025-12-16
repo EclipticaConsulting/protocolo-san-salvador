@@ -12,7 +12,7 @@ import base64
 
 # --- IMPORTACIÓN DE DATOS ---
 try:
-    from catalogo import (  # <--- TIENE QUE HABER 4 ESPACIOS ANTES DE "from"
+    from catalogo import (  # <--- Asegúrate de que aquí haya 4 espacios de sangría
         CATALOGO_INDICADORES, 
         LISTA_AGRUPAMIENTOS, 
         LISTA_UNIDADES, 
@@ -657,4 +657,5 @@ elif modo_app == T["nav_view"]:
     except Exception as e:
 
         st.error(f"Error al conectar con Google Sheets: {e}")
+
 
