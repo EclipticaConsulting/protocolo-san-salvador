@@ -243,13 +243,24 @@ if dark_mode:
     }}
     h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, .stMetricLabel {{ color: #F2F2F2 !important; }}
     
-    /* BOTONES */
-    div.stButton > button:first-child {{ 
+    /* BOTONES (ESTILO GENERAL - SECUNDARIOS) */
+    div.stButton > button {{ 
         background-color: #E0E0E0 !important; color: #011936 !important; 
         border: 1px solid #9D8420 !important; font-weight: bold !important; transition: all 0.3s ease; 
     }}
-    div.stButton > button:first-child:hover {{ 
+    div.stButton > button:hover {{ 
         background-color: #9D8420 !important; color: #F2F2F2 !important; border-color: #F2F2F2 !important; 
+    }}
+
+    /* BOTÓN PRIMARIO (AGREGAR AL LOTE - LETRA BLANCA) */
+    div.stButton > button[kind="primary"] {{
+        background-color: #011936 !important; /* Fondo Oscuro */
+        color: #FFFFFF !important; /* LETRA BLANCA */
+        border: 1px solid #9D8420 !important;
+    }}
+    div.stButton > button[kind="primary"]:hover {{
+        background-color: #9D8420 !important;
+        color: #FFFFFF !important;
     }}
     
     /* HOVER SELECTBOX (DARK) */
@@ -414,7 +425,7 @@ if modo_app == T["nav_load"]:
                 
                 m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue")
             
-            # Botón Agregar
+            # Botón Agregar (TIPO PRIMARY)
             if st.button(T["manual_btn"], type="primary", use_container_width=True):
                 if not pais_sel or not der_sel or not anio_sel:
                     st.error(T["err_missing_meta"])
