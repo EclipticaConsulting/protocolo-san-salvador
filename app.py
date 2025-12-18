@@ -252,7 +252,7 @@ if dark_mode:
         background-color: #9D8420 !important; color: #F2F2F2 !important; border-color: #F2F2F2 !important; 
     }}
 
-    /* BOTÓN AGREGAR AL LOTE (PRIMARY) */
+    /* BOTONES PRIMARY (AGREGAR AL LOTE / ACTUALIZAR TABLERO) */
     div.stButton > button[kind="primary"] {{
         background-color: #FFFFFF !important;
         color: #011936 !important;
@@ -260,10 +260,21 @@ if dark_mode:
     }}
     div.stButton > button[kind="primary"]:hover {{
         background-color: #FFF59D !important; /* AMARILLO CLARO */
-        color: #011936 !important; /* LETRA SIGUE AZUL OSCURA */
+        color: #011936 !important; 
         border-color: #011936 !important;
     }}
     
+    /* EXPANDER (DETALLE REGISTROS) */
+    div[data-testid="stExpander"] {{
+        background-color: #011936 !important; /* Azul Oscuro */
+        border: 1px solid #465362 !important; 
+        color: #FFFFFF !important; /* Fuente Blanca */
+    }}
+    div[data-testid="stExpander"] details summary {{ color: #FFFFFF !important; }}
+    div[data-testid="stExpander"] details summary:hover {{ color: #9D8420 !important; }}
+    div[data-testid="stExpander"] div[data-testid="stMarkdownContainer"] p {{ color: #FFFFFF !important; }}
+    div[data-testid="stExpander"] * {{ color: #FFFFFF !important; }}
+
     /* HOVER SELECTBOX (DARK) */
     .stSelectbox div[data-baseweb="select"] > div {{
         transition: border-color 0.3s ease !important;
@@ -340,7 +351,7 @@ else:
         background-color: #9D8420 !important; color: #FFFFFF !important; border-color: #9D8420 !important;
     }}
 
-    /* BOTÓN AGREGAR AL LOTE (PRIMARY) */
+    /* BOTONES PRIMARY (AGREGAR AL LOTE / ACTUALIZAR TABLERO) */
     div.stButton > button[kind="primary"] {{
         background-color: #FFFFFF !important;
         color: #011936 !important;
@@ -348,9 +359,19 @@ else:
     }}
     div.stButton > button[kind="primary"]:hover {{
         background-color: #FFF59D !important; /* AMARILLO CLARO */
-        color: #011936 !important; /* LETRA SIGUE AZUL OSCURA */
+        color: #011936 !important; 
         border-color: #011936 !important;
     }}
+    
+    /* EXPANDER (DETALLE REGISTROS) */
+    div[data-testid="stExpander"] {{ 
+        background-color: #011936 !important; /* Azul Oscuro */
+        border: 1px solid #011936; border-radius: 8px; 
+        color: #FFFFFF !important; /* Fuente Blanca */
+    }}
+    div[data-testid="stExpander"] * {{ color: #FFFFFF !important; }}
+    div[data-testid="stExpander"] input {{ color: #FFFFFF !important; }}
+    div[data-testid="stExpander"] div[data-baseweb="select"] div {{ color: #FFFFFF !important; }}
 
     p, h1, h2, h3, h4, h5, h6, label, .stMarkdown, .stRadio label {{ color: #011936 !important; }}
     section[data-testid="stSidebar"] {{ display: none; }}
@@ -489,7 +510,8 @@ if modo_app == T["nav_load"]:
 # --- MÓDULO 2: VISUALIZACIÓN ---
 elif modo_app == T["nav_view"]:
     st.subheader(T["view_title"])
-    if st.button(T["view_refresh"]):
+    # CAMBIO AQUÍ: Botón Actualizar ahora es PRIMARY
+    if st.button(T["view_refresh"], type="primary"):
         st.cache_data.clear()
         st.rerun()
     
