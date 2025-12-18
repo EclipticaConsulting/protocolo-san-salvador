@@ -252,18 +252,19 @@ if dark_mode:
         background-color: #9D8420 !important; color: #F2F2F2 !important; border-color: #F2F2F2 !important; 
     }}
 
-    /* BOTÓN AGREGAR AL LOTE (PRIMARY) - ESTILO BLANCO */
+    /* BOTÓN AGREGAR AL LOTE (PRIMARY) */
     div.stButton > button[kind="primary"] {{
         background-color: #FFFFFF !important;
         color: #011936 !important;
         border: 2px solid #011936 !important;
     }}
     div.stButton > button[kind="primary"]:hover {{
-        background-color: #011936 !important; /* Fondo Azul Oscuro */
-        color: #FFFFFF !important; /* Letra Blanca */
+        background-color: #FFF59D !important; /* AMARILLO CLARO */
+        color: #011936 !important; /* LETRA SIGUE AZUL OSCURA */
+        border-color: #011936 !important;
     }}
     
-    /* HOVER SELECTBOX */
+    /* HOVER SELECTBOX (DARK) */
     .stSelectbox div[data-baseweb="select"] > div {{
         transition: border-color 0.3s ease !important;
     }}
@@ -321,7 +322,7 @@ else:
     ul[data-baseweb="menu"] {{ background-color: #011936 !important; }}
     li[data-baseweb="option"] {{ color: #FFFFFF !important; }}
     
-    /* HOVER SELECTBOX */
+    /* HOVER SELECTBOX (LIGHT) */
     .stSelectbox div[data-baseweb="select"] > div {{
         transition: border-color 0.3s ease !important;
     }}
@@ -339,15 +340,16 @@ else:
         background-color: #9D8420 !important; color: #FFFFFF !important; border-color: #9D8420 !important;
     }}
 
-    /* BOTÓN AGREGAR AL LOTE (PRIMARY) - ESTILO BLANCO */
+    /* BOTÓN AGREGAR AL LOTE (PRIMARY) */
     div.stButton > button[kind="primary"] {{
         background-color: #FFFFFF !important;
         color: #011936 !important;
         border: 2px solid #011936 !important;
     }}
     div.stButton > button[kind="primary"]:hover {{
-        background-color: #011936 !important;
-        color: #FFFFFF !important;
+        background-color: #FFF59D !important; /* AMARILLO CLARO */
+        color: #011936 !important; /* LETRA SIGUE AZUL OSCURA */
+        border-color: #011936 !important;
     }}
 
     p, h1, h2, h3, h4, h5, h6, label, .stMarkdown, .stRadio label {{ color: #011936 !important; }}
