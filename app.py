@@ -243,7 +243,7 @@ if dark_mode:
     }}
     h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, .stMetricLabel {{ color: #F2F2F2 !important; }}
     
-    /* BOTONES (ESTILO GENERAL - SECUNDARIOS) */
+    /* BOTONES GENERALES (SECUNDARIOS) */
     div.stButton > button {{ 
         background-color: #E0E0E0 !important; color: #011936 !important; 
         border: 1px solid #9D8420 !important; font-weight: bold !important; transition: all 0.3s ease; 
@@ -252,18 +252,18 @@ if dark_mode:
         background-color: #9D8420 !important; color: #F2F2F2 !important; border-color: #F2F2F2 !important; 
     }}
 
-    /* BOTÓN PRIMARIO (AGREGAR AL LOTE - LETRA BLANCA) */
+    /* BOTÓN AGREGAR AL LOTE (PRIMARY) - ESTILO BLANCO */
     div.stButton > button[kind="primary"] {{
-        background-color: #011936 !important; /* Fondo Oscuro */
-        color: #FFFFFF !important; /* LETRA BLANCA */
-        border: 1px solid #9D8420 !important;
+        background-color: #FFFFFF !important;
+        color: #011936 !important;
+        border: 2px solid #011936 !important;
     }}
     div.stButton > button[kind="primary"]:hover {{
-        background-color: #9D8420 !important;
-        color: #FFFFFF !important;
+        background-color: #011936 !important; /* Fondo Azul Oscuro */
+        color: #FFFFFF !important; /* Letra Blanca */
     }}
     
-    /* HOVER SELECTBOX (DARK) */
+    /* HOVER SELECTBOX */
     .stSelectbox div[data-baseweb="select"] > div {{
         transition: border-color 0.3s ease !important;
     }}
@@ -321,7 +321,7 @@ else:
     ul[data-baseweb="menu"] {{ background-color: #011936 !important; }}
     li[data-baseweb="option"] {{ color: #FFFFFF !important; }}
     
-    /* HOVER SELECTBOX (LIGHT) */
+    /* HOVER SELECTBOX */
     .stSelectbox div[data-baseweb="select"] > div {{
         transition: border-color 0.3s ease !important;
     }}
@@ -330,14 +330,26 @@ else:
         cursor: pointer;
     }}
 
-    /* BOTONES */
-    .stButton button, [data-testid="stFileUploader"] button {{ 
+    /* BOTONES GENERALES (SECUNDARIOS) */
+    div.stButton > button {{ 
         background-color: #011936 !important; color: #FFFFFF !important; border: 2px solid #011936; 
         border-radius: 8px; font-weight: 500 !important;
     }}
-    .stButton button:hover {{ 
+    div.stButton > button:hover {{ 
         background-color: #9D8420 !important; color: #FFFFFF !important; border-color: #9D8420 !important;
     }}
+
+    /* BOTÓN AGREGAR AL LOTE (PRIMARY) - ESTILO BLANCO */
+    div.stButton > button[kind="primary"] {{
+        background-color: #FFFFFF !important;
+        color: #011936 !important;
+        border: 2px solid #011936 !important;
+    }}
+    div.stButton > button[kind="primary"]:hover {{
+        background-color: #011936 !important;
+        color: #FFFFFF !important;
+    }}
+
     p, h1, h2, h3, h4, h5, h6, label, .stMarkdown, .stRadio label {{ color: #011936 !important; }}
     section[data-testid="stSidebar"] {{ display: none; }}
     </style>
