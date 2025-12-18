@@ -52,7 +52,7 @@ TEXTOS = {
         "toast_save": "Datos guardados correctamente.",
         "dash_expander_table": "Detalle de Registros",
         "err_missing_meta": "⚠️ ¡ALTO! Debes seleccionar PAÍS, DERECHO y AÑO en la parte superior antes de continuar.",
-        "chk_no_espec": "Marcar como 'No Específico' (Info. Insuficiente)"
+        "chk_no_espec": "Marcar como 'No Específico'"
     },
     "EN": {
         "title": "San Salvador Protocol", 
@@ -72,7 +72,7 @@ TEXTOS = {
         "toast_save": "Data saved successfully.",
         "dash_expander_table": "Record Details",
         "err_missing_meta": "⚠️ STOP! You must select COUNTRY, RIGHT, and YEAR at the top before proceeding.",
-        "chk_no_espec": "Mark as 'Non-Specific' (Insufficient Info)"
+        "chk_no_espec": "Mark as 'Non-Specific'"
     }
 }
 
@@ -202,6 +202,7 @@ img_base64 = get_base64_image("watermark_protocolo.png")
 
 # --- CSS STYLING ---
 if dark_mode:
+    # --- MODO OSCURO ---
     st.markdown(f"""
     <style>
     .stApp {{ background-color: #011936; color: #F2F2F2; }}
@@ -218,6 +219,8 @@ if dark_mode:
     }}
     .main .block-container {{ z-index: 1; position: relative; padding-top: 8rem !important; }}
     .stApp > header {{ display: none !important; }}
+    
+    /* NAV */
     div[data-testid="stRadio"] label {{ 
         background-color: transparent !important; color: #B0B0B0 !important; 
         padding: 8px 20px; border-radius: 20px; font-weight: 600; border: 1px solid transparent; 
@@ -233,12 +236,14 @@ if dark_mode:
     }}
     div[data-testid="stRadio"] > div {{ display: flex; justify_content: center; gap: 20px; align-items: center; }}
     div[role="radiogroup"] > label > div:first-child {{ display: none !important; }}
+
+    /* CONTENEDORES */
     div[data-testid="stMetric"], div[data-testid="stForm"], .stDataFrame {{ 
         background-color: #465362; border: 1px solid #9D8420; border-radius: 8px; padding: 15px; 
     }}
-    div[data-testid="metric-container"] {{ display: flex; justify-content: center; flex-direction: column; align-items: center; }}
     h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, .stMetricLabel {{ color: #F2F2F2 !important; }}
-    div[data-testid="stMetricValue"] {{ color: #9D8420 !important; }}
+    
+    /* BOTONES */
     div.stButton > button:first-child {{ 
         background-color: #E0E0E0 !important; color: #011936 !important; 
         border: 1px solid #9D8420 !important; font-weight: bold !important; transition: all 0.3s ease; 
@@ -246,18 +251,21 @@ if dark_mode:
     div.stButton > button:first-child:hover {{ 
         background-color: #9D8420 !important; color: #F2F2F2 !important; border-color: #F2F2F2 !important; 
     }}
-    div.stButton > button p {{ color: inherit !important; }}
-    div[data-testid="stExpander"] {{
-        background-color: #465362 !important; border: 0px solid rgba(255,255,255,0.1) !important; 
-        color: #F2F2F2 !important;
+    
+    /* HOVER SELECTBOX (DARK) */
+    .stSelectbox div[data-baseweb="select"] > div {{
+        transition: border-color 0.3s ease !important;
     }}
-    div[data-testid="stExpander"] details summary {{ color: #F2F2F2 !important; }}
-    div[data-testid="stExpander"] details summary:hover {{ color: #9D8420 !important; }}
-    div[data-testid="stExpander"] div[data-testid="stMarkdownContainer"] p {{ color: #F2F2F2 !important; }}
+    .stSelectbox div[data-baseweb="select"] > div:hover {{
+        border-color: #F2F2F2 !important;
+        cursor: pointer;
+    }}
+
     section[data-testid="stSidebar"] {{ display: none; }}
     </style>
     """, unsafe_allow_html=True)
 else:
+    # --- MODO CLARO ---
     st.markdown(f"""
     <style>
     .stApp {{ background-color: #F2F2F2; color: #011936; }}
@@ -274,6 +282,8 @@ else:
     }}
     .main .block-container {{ z-index: 1; position: relative; padding-top: 8rem !important; }}
     .stApp > header {{ display: none !important; }}
+    
+    /* NAV */
     div[role="radiogroup"] > label > div:first-child {{ display: none !important; }}
     div[data-testid="stRadio"] label {{ 
         background-color: transparent; color: #465362 !important; font-weight: 400 !important;
@@ -288,6 +298,8 @@ else:
         border: 2px solid #011936 !important; box-shadow: 0px 4px 8px rgba(0,0,0,0.3);
     }}
     div[role="radiogroup"] label[data-checked="true"] p {{ color: #FFFFFF !important; }}
+    
+    /* INPUTS & DROPDOWNS */
     .stSelectbox div[data-baseweb="select"] > div, .stTextInput input {{
         background-color: #011936 !important; color: #FFFFFF !important; border: 1px solid #465362 !important;
     }}
@@ -297,12 +309,17 @@ else:
     div[data-baseweb="select"] svg {{ fill: #FFFFFF !important; }}
     ul[data-baseweb="menu"] {{ background-color: #011936 !important; }}
     li[data-baseweb="option"] {{ color: #FFFFFF !important; }}
-    div[data-testid="stExpander"] {{ 
-        background-color: #011936 !important; border: 1px solid #011936; border-radius: 8px; color: #FFFFFF !important; 
+    
+    /* HOVER SELECTBOX (LIGHT) */
+    .stSelectbox div[data-baseweb="select"] > div {{
+        transition: border-color 0.3s ease !important;
     }}
-    div[data-testid="stExpander"] * {{ color: #FFFFFF !important; }}
-    div[data-testid="stExpander"] input {{ color: #FFFFFF !important; }}
-    div[data-testid="stExpander"] div[data-baseweb="select"] div {{ color: #FFFFFF !important; }}
+    .stSelectbox div[data-baseweb="select"] > div:hover {{
+        border-color: #9D8420 !important;
+        cursor: pointer;
+    }}
+
+    /* BOTONES */
     .stButton button, [data-testid="stFileUploader"] button {{ 
         background-color: #011936 !important; color: #FFFFFF !important; border: 2px solid #011936; 
         border-radius: 8px; font-weight: 500 !important;
@@ -310,10 +327,7 @@ else:
     .stButton button:hover {{ 
         background-color: #9D8420 !important; color: #FFFFFF !important; border-color: #9D8420 !important;
     }}
-    .stButton button p {{ color: inherit !important; }}
     p, h1, h2, h3, h4, h5, h6, label, .stMarkdown, .stRadio label {{ color: #011936 !important; }}
-    div[data-testid="stMetricLabel"] {{ color: #011936 !important; }}
-    div[data-testid="stMetricValue"] {{ color: #9D8420 !important; }}
     section[data-testid="stSidebar"] {{ display: none; }}
     </style>
     """, unsafe_allow_html=True)
@@ -381,16 +395,22 @@ if modo_app == T["nav_load"]:
             with c1:
                 m_des = st.selectbox("Desagregación", LISTA_DESAGREGACION, key="sel_des")
                 m_uni = st.selectbox("Unidad", LISTA_UNIDADES, key="sel_uni")
+            
+            # CAMBIO AQUÍ: Layout para Valor y Checkbox juntos
             with c2:
-                # TAREA 1: CASILLA NO ESPECÍFICO
-                is_no_especifico = st.checkbox(T["chk_no_espec"], key="chk_no_espec")
+                col_valor_input, col_valor_chk = st.columns([0.65, 0.35]) # 65% Input, 35% Checkbox
                 
-                if is_no_especifico:
-                    # Si marca no específico, deshabilitamos el valor o simplemente dejamos que escriba
-                    # pero registramos TRUE en la base de datos.
-                    m_val = st.text_input("Valor", value="NO ESPECÍFICO", disabled=False, key="input_val_dis")
-                else:
-                    m_val = st.text_input("Valor", key="input_val")
+                with col_valor_chk:
+                    # Espaciadores para alinear verticalmente el checkbox con el input
+                    st.write("") 
+                    st.write("") 
+                    is_no_especifico = st.checkbox(T["chk_no_espec"], key="chk_no_espec")
+
+                with col_valor_input:
+                    if is_no_especifico:
+                        m_val = st.text_input("Valor", value="NO ESPECÍFICO", disabled=False, key="input_val_dis")
+                    else:
+                        m_val = st.text_input("Valor", key="input_val")
                 
                 m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue")
             
@@ -400,15 +420,13 @@ if modo_app == T["nav_load"]:
                     st.error(T["err_missing_meta"])
                 else:
                     with st.spinner("Agregando..."):
-                            # AQUÍ SE CREA LA COLUMNA NO_ESPECIFICO
                             no_esp_value = "TRUE" if is_no_especifico else "FALSE"
-                            
                             new_row = {
                                 "DERECHO":der_sel, "CATEGORÍA":m_cat, "AGRUPAMIENTO":m_agr, 
                                 "REF_INDICADOR":ref_auto, "INDICADOR":nombre_ind, 
                                 "DESAGREGACIÓN":m_des, "UNIDAD":m_uni, "AÑO":anio_sel, 
                                 "VALOR":m_val, "FUENTE":m_fue, "ESTADO_DATO":"Manual",
-                                "NO_ESPECIFICO": no_esp_value  # <--- NUEVA COLUMNA
+                                "NO_ESPECIFICO": no_esp_value
                             }
                             st.session_state.df_ia = pd.concat([st.session_state.df_ia, pd.DataFrame([new_row])], ignore_index=True)
                             time.sleep(0.2)
@@ -420,7 +438,6 @@ if modo_app == T["nav_load"]:
         df_work = st.session_state.df_ia.copy()
         df_work["UID"] = df_work.apply(lambda r: generar_uid(r, pais_sel, anio_sel, der_sel), axis=1)
         
-        # AÑADIMOS 'NO_ESPECIFICO' A LAS COLUMNAS VISIBLES
         cols = ["UID", "DERECHO", "CATEGORÍA", "INDICADOR", "AGRUPAMIENTO", "DESAGREGACIÓN", "UNIDAD", "AÑO", "VALOR", "FUENTE", "ESTADO_DATO", "NO_ESPECIFICO", "REF_INDICADOR"]
         for c in cols: 
             if c not in df_work.columns: df_work[c]=""
@@ -454,14 +471,13 @@ elif modo_app == T["nav_view"]:
     try:
         df_historico = cargar_datos_sheet()
         if not df_historico.empty:
-            # --- FILTROS (TAREA 2: AÑO AÑADIDO) ---
+            # --- FILTROS ---
             c_fil1, c_fil2, c_fil3 = st.columns(3)
             with c_fil1:
                 filtro_pais = st.multiselect("Filtrar por País", df_historico["UID"].astype(str).str.split("-").str[0].unique())
             with c_fil2:
                 filtro_derecho = st.multiselect("Filtrar por Derecho", df_historico["DERECHO"].unique())
             with c_fil3:
-                # Normalizamos a string para evitar errores de tipo
                 df_historico["AÑO"] = df_historico["AÑO"].astype(str)
                 filtro_anio = st.multiselect("Filtrar por Año", sorted(df_historico["AÑO"].unique()))
             
@@ -486,7 +502,7 @@ elif modo_app == T["nav_view"]:
                     elif "Proceso" in cat_str: cargados_cat["Procesos"] += count
                     elif "Resultado" in cat_str: cargados_cat["Resultados"] += count
 
-            # Cálculo de METAS (Basado en el Catálogo y Filtro de Derecho)
+            # Cálculo de METAS
             meta_total_calculada, metas_por_categoria = calcular_metas_catalogo(filtro_derecho if filtro_derecho else None)
             
             # --- VISUALIZACIÓN ---
@@ -532,7 +548,3 @@ elif modo_app == T["nav_view"]:
             
     except Exception as e:
         st.error(f"Error al conectar con Google Sheets: {e}")
-            
-    except Exception as e:
-        st.error(f"Error al conectar con Google Sheets: {e}")
-
