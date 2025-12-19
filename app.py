@@ -611,7 +611,7 @@ elif modo_app == T["nav_view"]:
                 df_evo = df_evo[df_evo["REF_INDICADOR"].astype(str) == ref_code_compare]
                 df_evo = df_evo[df_evo["AÑO"].isin(sel_years_compare)]
                 
-                # Limpieza de VALOR para graficar (Manejo de errores si hay texto)
+                # Limpieza de VALOR para graficar
                 df_evo["VALOR_NUM"] = pd.to_numeric(df_evo["VALOR"], errors='coerce').fillna(0)
                 
                 # Ordenar por año
@@ -623,7 +623,7 @@ elif modo_app == T["nav_view"]:
                     fig_bar.add_trace(go.Bar(
                         x=df_evo["AÑO"],
                         y=df_evo["VALOR_NUM"],
-                        text=df_evo["VALOR"], # Mostrar valor original (texto) en la barra
+                        text=df_evo["VALOR"], 
                         textposition='auto',
                         marker_color='#9D8420' if dark_mode else '#011936',
                         hovertemplate='<b>Año:</b> %{x}<br><b>Valor:</b> %{text}<extra></extra>'
@@ -637,7 +637,12 @@ elif modo_app == T["nav_view"]:
                         plot_bgcolor='rgba(0,0,0,0)',
                         paper_bgcolor='rgba(0,0,0,0)',
                         font=dict(color=text_color_charts),
-                        xaxis=dict(showgrid=False),
+                        # AQUÍ ESTÁ EL CAMBIO CLAVE: type='category'
+                        xaxis=dict(
+                            type='category', 
+                            showgrid=False,
+                            categoryorder='category ascending' # Asegura orden cronológico si los strings están bien
+                        ),
                         yaxis=dict(showgrid=True, gridcolor='#465362' if dark_mode else '#E0E0E0')
                     )
                     st.plotly_chart(fig_bar, use_container_width=True)
@@ -652,3 +657,4 @@ elif modo_app == T["nav_view"]:
             
     except Exception as e:
         st.error(f"Error al conectar con Google Sheets: {e}")
+
