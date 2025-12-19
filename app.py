@@ -24,7 +24,7 @@ except ImportError:
 # --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="Protocolo de San Salvador - Eclíptica", page_icon="🌎", layout="wide")
 
-# Función auxiliar para imágenes (CORREGIDA CON CACHE PARA EVITAR ERROR DE ARCHIVOS ABIERTOS)
+# Función auxiliar para imágenes (CON CACHE)
 @st.cache_data
 def get_base64_image(image_path):
     try:
@@ -53,7 +53,10 @@ TEXTOS = {
         "toast_save": "Datos guardados correctamente.",
         "dash_expander_table": "Detalle de Registros",
         "err_missing_meta": "⚠️ ¡ALTO! Debes seleccionar PAÍS, DERECHO y AÑO en la parte superior antes de continuar.",
-        "chk_no_espec": "Marcar como 'No Específico'"
+        "chk_no_espec": "Marcar como 'No Específico'",
+        "sec_evol": "Análisis Evolutivo (Comparativa)",
+        "fil_ind": "Seleccionar Indicador",
+        "fil_years": "Años a comparar"
     },
     "EN": {
         "title": "San Salvador Protocol", 
@@ -73,7 +76,10 @@ TEXTOS = {
         "toast_save": "Data saved successfully.",
         "dash_expander_table": "Record Details",
         "err_missing_meta": "⚠️ STOP! You must select COUNTRY, RIGHT, and YEAR at the top before proceeding.",
-        "chk_no_espec": "Mark as 'Non-Specific'"
+        "chk_no_espec": "Mark as 'Non-Specific'",
+        "sec_evol": "Evolutionary Analysis (Comparison)",
+        "fil_ind": "Select Indicator",
+        "fil_years": "Years to compare"
     }
 }
 
@@ -121,7 +127,6 @@ def calcular_metas_catalogo(derecho_filtro=None):
     meta_total = 0
     metas_cat = {"Estructurales": 0, "Procesos": 0, "Resultados": 0}
     
-    # Si derecho_filtro es un string único (porque usamos selectbox), lo convertimos a lista
     if derecho_filtro and isinstance(derecho_filtro, str):
         derecho_filtro = [derecho_filtro]
     
@@ -140,7 +145,6 @@ def calcular_metas_catalogo(derecho_filtro=None):
     return meta_total, metas_cat
 
 def crear_donut(valor, meta, color_fill, color_empty, titulo_centro, text_color):
-    # Evitar división por cero o metas negativas visuales
     meta_vis = max(valor, meta) 
     
     fig = go.Figure(data=[go.Pie(
@@ -266,16 +270,16 @@ if dark_mode:
         border: 2px solid #011936 !important;
     }}
     div.stButton > button[kind="primary"]:hover {{
-        background-color: #FFF59D !important; /* AMARILLO CLARO */
+        background-color: #FFF59D !important;
         color: #011936 !important; 
         border-color: #011936 !important;
     }}
     
     /* EXPANDER (DETALLE REGISTROS) */
     div[data-testid="stExpander"] {{
-        background-color: #011936 !important; /* Azul Oscuro */
+        background-color: #011936 !important;
         border: 1px solid #465362 !important; 
-        color: #FFFFFF !important; /* Fuente Blanca */
+        color: #FFFFFF !important;
     }}
     div[data-testid="stExpander"] details summary {{ color: #FFFFFF !important; }}
     div[data-testid="stExpander"] details summary:hover {{ color: #9D8420 !important; }}
@@ -362,16 +366,16 @@ else:
         border: 2px solid #011936 !important;
     }}
     div.stButton > button[kind="primary"]:hover {{
-        background-color: #FFF59D !important; /* AMARILLO CLARO */
+        background-color: #FFF59D !important;
         color: #011936 !important; 
         border-color: #011936 !important;
     }}
     
     /* EXPANDER (DETALLE REGISTROS) */
     div[data-testid="stExpander"] {{ 
-        background-color: #011936 !important; /* Azul Oscuro */
+        background-color: #011936 !important;
         border: 1px solid #011936; border-radius: 8px; 
-        color: #FFFFFF !important; /* Fuente Blanca */
+        color: #FFFFFF !important;
     }}
     div[data-testid="stExpander"] * {{ color: #FFFFFF !important; }}
     div[data-testid="stExpander"] input {{ color: #FFFFFF !important; }}
@@ -385,7 +389,6 @@ else:
 # --- MÓDULO 1: GESTIÓN MANUAL ---
 if modo_app == T["nav_load"]:
     
-    # Header de Selección Global
     c_meta1, c_meta2, c_meta3 = st.columns(3)
     with c_meta1:
         pais_sel = st.selectbox(T["meta_country"], list(MAPA_PAISES.keys()), index=None, placeholder="Seleccione un país...")
@@ -395,12 +398,9 @@ if modo_app == T["nav_load"]:
         anio_sel = st.selectbox(T["meta_year"], range(2000, 2031), index=None, placeholder="Seleccione año...")
     
     st.markdown("---")
-    
-    # Formulario Manual
     st.subheader(T["val_header"])
     if "df_ia" not in st.session_state: st.session_state.df_ia = pd.DataFrame()
     
-    # Contenedor del Formulario
     with st.container(border=True):
         if not der_sel:
             st.warning("⚠️ Selecciona un 'Derecho Asignado' arriba para cargar las listas correspondientes.")
@@ -410,7 +410,6 @@ if modo_app == T["nav_load"]:
             else:
                 agrupamientos_disp = ["No hay datos cargados"]
             
-            # Fila 1: Clasificación
             c_f1_1, c_f1_2 = st.columns(2)
             with c_f1_1:
                 m_agr = st.selectbox("Agrupamiento", agrupamientos_disp, key="sel_agr")
@@ -422,7 +421,6 @@ if modo_app == T["nav_load"]:
             with c_f1_2:
                 m_cat = st.selectbox("Categoría", categorias_disp if categorias_disp else ["Estructural", "Proceso", "Resultado"], key="sel_cat")
             
-            # Fila 2: Indicador
             indicadores_obj = []
             if der_sel in CATALOGO_INDICADORES and m_agr in CATALOGO_INDICADORES[der_sel] and m_cat in CATALOGO_INDICADORES[der_sel][m_agr]:
                 indicadores_obj = CATALOGO_INDICADORES[der_sel][m_agr][m_cat]
@@ -439,17 +437,14 @@ if modo_app == T["nav_load"]:
             
             st.caption(f"📌 Referencia Técnica: **{ref_auto}**")
 
-            # Fila 3: Detalles y Datos
             st.markdown("---")
             c1, c2 = st.columns(2)
             with c1:
                 m_des = st.selectbox("Desagregación", LISTA_DESAGREGACION, key="sel_des")
                 m_uni = st.selectbox("Unidad", LISTA_UNIDADES, key="sel_uni")
             
-            # Layout para Valor y Checkbox juntos
             with c2:
                 col_valor_input, col_valor_chk = st.columns([0.65, 0.35])
-                
                 with col_valor_chk:
                     st.write("") 
                     st.write("") 
@@ -463,7 +458,6 @@ if modo_app == T["nav_load"]:
                 
                 m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue")
             
-            # Botón Agregar (TIPO PRIMARY)
             if st.button(T["manual_btn"], type="primary", use_container_width=True):
                 if not pais_sel or not der_sel or not anio_sel:
                     st.error(T["err_missing_meta"])
@@ -481,7 +475,6 @@ if modo_app == T["nav_load"]:
                             time.sleep(0.2)
                             st.rerun()
 
-    # Tabla de Previsualización (Lote actual)
     if not st.session_state.df_ia.empty:
         st.subheader("Lote en Preparación")
         df_work = st.session_state.df_ia.copy()
@@ -521,61 +514,29 @@ elif modo_app == T["nav_view"]:
         df_historico = cargar_datos_sheet()
         if not df_historico.empty:
             
-            # --- LOGICA DE FILTROS Y DEFAULTS ---
-            
-            # 1. Obtener listas únicas disponibles en la BD
-            # Extraemos los códigos de país de los UIDs (ej: VEN, ARG)
+            # --- 1. FILTROS NIVEL SUPERIOR (GLOBALES Y PROGRESO) ---
             paises_disponibles_code = sorted(list(set([str(uid).split("-")[0] for uid in df_historico["UID"] if "-" in str(uid)])))
             derechos_disponibles = sorted(df_historico["DERECHO"].unique())
-            # Años ordenados de MAYOR a MENOR (Descendente) para que el index 0 sea el más reciente
             anios_disponibles = sorted(df_historico["AÑO"].astype(str).unique(), reverse=True)
 
-            # 2. Definir valores por defecto (index 0)
-            # Nota: Usamos selectbox para garantizar la vista "un solo año a la vez"
-            
             c_fil1, c_fil2, c_fil3 = st.columns(3)
-            
             with c_fil1:
-                # Filtrar País
-                sel_pais_code = st.selectbox(
-                    "Filtrar por País", 
-                    paises_disponibles_code, 
-                    index=0 if paises_disponibles_code else None
-                )
-            
+                sel_pais_code = st.selectbox("Filtrar por País", paises_disponibles_code, index=0 if paises_disponibles_code else None)
             with c_fil2:
-                # Filtrar Derecho
-                sel_derecho = st.selectbox(
-                    "Filtrar por Derecho", 
-                    derechos_disponibles, 
-                    index=0 if derechos_disponibles else None
-                )
-            
+                sel_derecho = st.selectbox("Filtrar por Derecho", derechos_disponibles, index=0 if derechos_disponibles else None)
             with c_fil3:
-                # Filtrar Año (Default: El más reciente)
-                sel_anio = st.selectbox(
-                    "Filtrar por Año", 
-                    anios_disponibles, 
-                    index=0 if anios_disponibles else None
-                )
+                sel_anio = st.selectbox("Filtrar por Año (Progreso)", anios_disponibles, index=0 if anios_disponibles else None)
             
-            # --- APLICACIÓN DE FILTROS ---
+            # Datos Filtrados para DONAS (Un solo año)
             df_show = df_historico.copy()
             df_show["AÑO"] = df_show["AÑO"].astype(str)
 
-            if sel_pais_code:
-                # Filtramos verificando que el UID empiece con el código seleccionado
-                df_show = df_show[df_show["UID"].astype(str).str.startswith(sel_pais_code)]
+            if sel_pais_code: df_show = df_show[df_show["UID"].astype(str).str.startswith(sel_pais_code)]
+            if sel_derecho: df_show = df_show[df_show["DERECHO"] == sel_derecho]
+            if sel_anio: df_show = df_show[df_show["AÑO"] == sel_anio]
             
-            if sel_derecho:
-                df_show = df_show[df_show["DERECHO"] == sel_derecho]
-            
-            if sel_anio:
-                df_show = df_show[df_show["AÑO"] == sel_anio]
-            
-            # --- CÁLCULOS DE PROGRESO ---
+            # --- CÁLCULOS DONAS ---
             indicadores_cargados_total = df_show["REF_INDICADOR"].nunique() if not df_show.empty else 0
-            
             cargados_cat = {"Estructurales": 0, "Procesos": 0, "Resultados": 0}
             if not df_show.empty and "CATEGORÍA" in df_show.columns:
                 for cat in df_show["CATEGORÍA"].unique():
@@ -584,32 +545,19 @@ elif modo_app == T["nav_view"]:
                     if "Estructural" in cat_str: cargados_cat["Estructurales"] += count
                     elif "Proceso" in cat_str: cargados_cat["Procesos"] += count
                     elif "Resultado" in cat_str: cargados_cat["Resultados"] += count
-
-            # Cálculo de METAS (Basado en el Derecho seleccionado)
-            # Nota: Al usar selectbox, sel_derecho es un string, calculate_metas lo maneja.
             meta_total_calculada, metas_por_categoria = calcular_metas_catalogo(sel_derecho)
             
-            # --- VISUALIZACIÓN ---
+            # --- VISUALIZACIÓN DONAS ---
             st.divider()
-            
             text_color_charts = "#F2F2F2" if dark_mode else "#011936"
             color_missing = "#ff4444"
             
-            # Gráfico Principal
             col_main_chart = st.columns([1, 2, 1])
             with col_main_chart[1]:
                 st.markdown(f"<h3 style='text-align: center; color:{text_color_charts}'>Progreso Global {sel_anio}</h3>", unsafe_allow_html=True)
-                fig_main = crear_donut(
-                    indicadores_cargados_total, 
-                    meta_total_calculada, 
-                    "#00C851", 
-                    color_missing, 
-                    f"{indicadores_cargados_total} / {meta_total_calculada}",
-                    text_color_charts
-                )
+                fig_main = crear_donut(indicadores_cargados_total, meta_total_calculada, "#00C851", color_missing, f"{indicadores_cargados_total} / {meta_total_calculada}", text_color_charts)
                 st.plotly_chart(fig_main, use_container_width=True)
 
-            # Gráficos Secundarios
             c1, c2, c3 = st.columns(3)
             with c1:
                 st.markdown(f"<h5 style='text-align: center; color:{text_color_charts}'>Estructurales</h5>", unsafe_allow_html=True)
@@ -624,6 +572,78 @@ elif modo_app == T["nav_view"]:
                 fig_res = crear_donut(cargados_cat["Resultados"], metas_por_categoria["Resultados"], "#aa66cc", color_missing, f"{cargados_cat['Resultados']}/{metas_por_categoria['Resultados']}", text_color_charts)
                 st.plotly_chart(fig_res, use_container_width=True)
 
+            # --- NUEVA SECCIÓN: ANÁLISIS EVOLUTIVO ---
+            st.divider()
+            st.subheader(T["sec_evol"])
+
+            # 1. Preparar lista de indicadores DEL CATÁLOGO (según derecho seleccionado arriba)
+            lista_indicadores_catalogo = []
+            if sel_derecho and sel_derecho in CATALOGO_INDICADORES:
+                for agrup in CATALOGO_INDICADORES[sel_derecho].values():
+                    for cat in agrup.values():
+                        for ref, nombre in cat:
+                            lista_indicadores_catalogo.append(f"[{ref}] {nombre}")
+            else:
+                lista_indicadores_catalogo = ["Seleccione un Derecho arriba"]
+            
+            # 2. Filtros Específicos para Comparativa
+            col_evo1, col_evo2 = st.columns([2, 1])
+            with col_evo1:
+                sel_ind_compare = st.selectbox(T["fil_ind"], lista_indicadores_catalogo)
+            with col_evo2:
+                # Ordenados cronológicamente para el multiselect
+                anios_para_comparar = sorted(df_historico["AÑO"].astype(str).unique())
+                sel_years_compare = st.multiselect(T["fil_years"], anios_para_comparar, default=anios_para_comparar[-3:] if len(anios_para_comparar) >=3 else anios_para_comparar)
+
+            # 3. Procesar datos para gráfico de barras
+            if sel_ind_compare and "[" in sel_ind_compare:
+                ref_code_compare = sel_ind_compare.split("]")[0].replace("[", "")
+                
+                # Filtrar DF principal
+                df_evo = df_historico.copy()
+                df_evo["AÑO"] = df_evo["AÑO"].astype(str)
+                
+                # Filtros acumulativos
+                if sel_pais_code: df_evo = df_evo[df_evo["UID"].astype(str).str.startswith(sel_pais_code)]
+                if sel_derecho: df_evo = df_evo[df_evo["DERECHO"] == sel_derecho]
+                
+                # Filtro específico
+                df_evo = df_evo[df_evo["REF_INDICADOR"].astype(str) == ref_code_compare]
+                df_evo = df_evo[df_evo["AÑO"].isin(sel_years_compare)]
+                
+                # Limpieza de VALOR para graficar (Manejo de errores si hay texto)
+                df_evo["VALOR_NUM"] = pd.to_numeric(df_evo["VALOR"], errors='coerce').fillna(0)
+                
+                # Ordenar por año
+                df_evo = df_evo.sort_values("AÑO")
+
+                if not df_evo.empty:
+                    # Crear Gráfico Barras
+                    fig_bar = go.Figure()
+                    fig_bar.add_trace(go.Bar(
+                        x=df_evo["AÑO"],
+                        y=df_evo["VALOR_NUM"],
+                        text=df_evo["VALOR"], # Mostrar valor original (texto) en la barra
+                        textposition='auto',
+                        marker_color='#9D8420' if dark_mode else '#011936',
+                        hovertemplate='<b>Año:</b> %{x}<br><b>Valor:</b> %{text}<extra></extra>'
+                    ))
+                    
+                    fig_bar.update_layout(
+                        title=f"Evolución: {sel_ind_compare}",
+                        title_font_color=text_color_charts,
+                        xaxis_title="Año",
+                        yaxis_title="Valor Registrado",
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font=dict(color=text_color_charts),
+                        xaxis=dict(showgrid=False),
+                        yaxis=dict(showgrid=True, gridcolor='#465362' if dark_mode else '#E0E0E0')
+                    )
+                    st.plotly_chart(fig_bar, use_container_width=True)
+                else:
+                    st.info("No hay registros para este indicador en los años y país seleccionados.")
+            
             st.divider()
             with st.expander(T["dash_expander_table"]):
                 st.dataframe(df_show, use_container_width=True, height=600)
@@ -632,5 +652,3 @@ elif modo_app == T["nav_view"]:
             
     except Exception as e:
         st.error(f"Error al conectar con Google Sheets: {e}")
-
-
