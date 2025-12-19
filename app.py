@@ -36,7 +36,7 @@ def get_base64_image(image_path):
 # --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="Protocolo de San Salvador - Eclíptica", page_icon="🌎", layout="wide")
 
-# --- 2. TEXTOS (DICCIONARIO CORREGIDO Y COMPLETO) ---
+# --- 2. TEXTOS ---
 TEXTOS = {
     "ES": {
         "title": "Protocolo de San Salvador", 
@@ -472,12 +472,10 @@ elif modo_app == T["nav_view"]:
     try:
         df_historico = cargar_datos_sheet()
         
-        # --- FILTROS (V43: Defaults inteligentes) ---
         c_fil1, c_fil2, c_fil3 = st.columns(3)
         list_paises = sorted(list(MAPA_PAISES.keys()))
         list_derechos = sorted(list(MAPA_DERECHOS.keys()))
         idx_pais = 0 
-        idx_derecho = 0
         max_anio = 2024 
         if not df_historico.empty and "AÑO" in df_historico.columns:
             try: max_anio = int(df_historico["AÑO"].max())
@@ -489,14 +487,14 @@ elif modo_app == T["nav_view"]:
         
         with c_fil2:
             opciones_derecho = ["TODOS"] + list_derechos
-            filtro_derecho = st.multiselect("Filtrar por Derecho", opciones_derecho, default=[list_derechos[0]])
+            # MODIFICACIÓN V45: Sin selección por defecto
+            filtro_derecho = st.multiselect("Filtrar por Derecho", opciones_derecho)
             
         with c_fil3:
             opciones_anio = [str(x) for x in range(2000, 2031)]
             default_anio = [str(max_anio)] if str(max_anio) in opciones_anio else []
             filtro_anio = st.multiselect("Filtrar por Año (Dashboard)", opciones_anio, default=default_anio)
         
-        # --- LÓGICA DE FILTRADO ---
         if not df_historico.empty:
             df_show = df_historico.copy()
             if filtro_pais and "TODOS" not in filtro_pais:
@@ -509,7 +507,6 @@ elif modo_app == T["nav_view"]:
         else:
             df_show = pd.DataFrame()
 
-        # --- KPI DONUTS ---
         indicadores_cargados = df_show["REF_INDICADOR"].nunique() if not df_show.empty else 0
         cargados_cat = {"Estructurales": 0, "Procesos": 0, "Resultados": 0}
         if not df_show.empty and "CATEGORÍA" in df_show.columns:
@@ -522,7 +519,6 @@ elif modo_app == T["nav_view"]:
 
         meta_total, metas_cat = calcular_metas_catalogo(filtro_derecho if filtro_derecho else None)
         
-        # --- VISUALIZACIÓN DONUTS ---
         st.divider()
         text_color = "#F2F2F2" if dark_mode else "#011936"
         color_missing = "#ff4444"
@@ -545,7 +541,6 @@ elif modo_app == T["nav_view"]:
 
         st.divider()
 
-        # --- SECCIÓN 2: ANÁLISIS COMPARATIVO (BARRAS) ---
         st.markdown(f"<h3 style='color:{text_color}'>{T['dash_chart_bar']}</h3>", unsafe_allow_html=True)
         
         if not df_show.empty:
