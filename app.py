@@ -164,7 +164,6 @@ def calcular_metas_catalogo(derecho_filtro=None):
     meta_total = 0
     metas_cat = {"Estructurales": 0, "Procesos": 0, "Resultados": 0}
     for derecho, agrupamientos in CATALOGO_INDICADORES.items():
-        # V47: Ajuste para "Todos" (Title Case)
         if derecho_filtro and derecho_filtro != "Todos":
             if derecho != derecho_filtro: continue
             
@@ -483,16 +482,16 @@ elif modo_app == T["nav_view"]:
             except: pass
         
         with c_fil1:
-            # V47: Sin "TODOS", selección única
+            # V47: Sin "TODOS"
             filtro_pais = st.selectbox("Filtrar por País", list_paises, index=0)
         
         with c_fil2:
-            # V47: "Todos" (Title Case)
+            # V47: "Todos"
             opciones_derecho = ["Todos"] + list_derechos
             filtro_derecho = st.selectbox("Filtrar por Derecho", opciones_derecho, index=0)
             
         with c_fil3:
-            # V47: Sin "TODOS", selección única con default a max_anio si posible
+            # V47: Sin "TODOS", selección completa de años
             opciones_anio = [str(x) for x in range(2000, 2031)]
             try:
                 idx_anio = opciones_anio.index(str(max_anio))
@@ -503,7 +502,7 @@ elif modo_app == T["nav_view"]:
         # --- LÓGICA DE FILTRADO ---
         if not df_historico.empty:
             df_show = df_historico.copy()
-            # 1. País (Siempre filtra porque ya no hay TODOS)
+            # 1. País (Siempre hay uno seleccionado)
             if filtro_pais in MAPA_PAISES:
                 code_pais = MAPA_PAISES[filtro_pais]
                 df_show = df_show[df_show["UID"].astype(str).str.startswith(code_pais)]
@@ -512,7 +511,7 @@ elif modo_app == T["nav_view"]:
             if filtro_derecho != "Todos":
                 df_show = df_show[df_show["DERECHO"] == filtro_derecho]
                 
-            # 3. Año (Siempre filtra porque ya no hay TODOS)
+            # 3. Año (Siempre hay uno seleccionado)
             df_show = df_show[df_show["AÑO"].astype(str) == filtro_anio]
         else:
             df_show = pd.DataFrame()
@@ -562,11 +561,15 @@ elif modo_app == T["nav_view"]:
         with c_ana1:
             sel_ind_comp = st.selectbox("Seleccione Indicador para Comparar", indicadores_disponibles)
         with c_ana2:
-            anios_disp_ind = []
+            # Lista completa de años para el análisis comparativo (V48)
+            full_years_list = [str(x) for x in range(2000, 2031)]
+            
+            # Pre-seleccionar los años que tienen datos para ese indicador
+            anios_con_datos = []
             if sel_ind_comp and not df_show.empty:
-                anios_disp_ind = sorted(df_show[df_show["INDICADOR"] == sel_ind_comp]["AÑO"].unique().astype(str))
-            # V47: Este se mantiene como MULTISELECT para poder comparar años
-            sel_anios_comp = st.multiselect("Seleccione Años", anios_disp_ind, default=anios_disp_ind)
+                anios_con_datos = sorted(df_show[df_show["INDICADOR"] == sel_ind_comp]["AÑO"].unique().astype(str))
+            
+            sel_anios_comp = st.multiselect("Seleccione Años", full_years_list, default=anios_con_datos)
 
         if sel_ind_comp and sel_anios_comp and not df_show.empty:
             df_chart = df_show[(df_show["INDICADOR"] == sel_ind_comp) & (df_show["AÑO"].astype(str).isin(sel_anios_comp))].copy()
