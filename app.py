@@ -21,16 +21,17 @@ except ImportError:
     st.error("❌ Error Crítico: No se encontró el archivo 'catalogo.py'.")
     st.stop()
 
-# Función auxiliar para imágenes
+# --- 1. CONFIGURACIÓN ---
+st.set_page_config(page_title="Protocolo de San Salvador - Eclíptica", page_icon="🌎", layout="wide")
+
+# Función auxiliar para imágenes (CORREGIDA CON CACHE PARA EVITAR ERROR DE ARCHIVOS ABIERTOS)
+@st.cache_data
 def get_base64_image(image_path):
     try:
         with open(image_path, "rb") as img_file:
             return base64.b64encode(img_file.read()).decode()
     except:
         return ""
-
-# --- 1. CONFIGURACIÓN ---
-st.set_page_config(page_title="Protocolo de San Salvador - Eclíptica", page_icon="🌎", layout="wide")
 
 # --- 2. TEXTOS ---
 TEXTOS = {
@@ -120,6 +121,10 @@ def calcular_metas_catalogo(derecho_filtro=None):
     meta_total = 0
     metas_cat = {"Estructurales": 0, "Procesos": 0, "Resultados": 0}
     
+    # Si derecho_filtro es un string único (porque usamos selectbox), lo convertimos a lista
+    if derecho_filtro and isinstance(derecho_filtro, str):
+        derecho_filtro = [derecho_filtro]
+    
     for derecho, agrupamientos in CATALOGO_INDICADORES.items():
         if derecho_filtro and derecho not in derecho_filtro:
             continue
@@ -135,9 +140,12 @@ def calcular_metas_catalogo(derecho_filtro=None):
     return meta_total, metas_cat
 
 def crear_donut(valor, meta, color_fill, color_empty, titulo_centro, text_color):
+    # Evitar división por cero o metas negativas visuales
+    meta_vis = max(valor, meta) 
+    
     fig = go.Figure(data=[go.Pie(
         labels=['Completado', 'Faltante'],
-        values=[valor, max(0, meta - valor)],
+        values=[valor, max(0, meta_vis - valor)],
         hole=.75,
         marker=dict(colors=[color_fill, color_empty]),
         textinfo='none',
@@ -246,7 +254,7 @@ if dark_mode:
     /* BOTONES GENERALES (SECUNDARIOS) */
     div.stButton > button {{ 
         background-color: #E0E0E0 !important; color: #011936 !important; 
-        border: 1px solid #9D8420 !important; font-weight: bold !important; transition: all 0.3s ease; 
+        border: 1px solid #9D8420 !important; font-weight: bold !important; transition: all 0.3s ease;
     }}
     div.stButton > button:hover {{ 
         background-color: #9D8420 !important; color: #F2F2F2 !important; border-color: #F2F2F2 !important; 
@@ -254,8 +262,7 @@ if dark_mode:
 
     /* BOTONES PRIMARY (AGREGAR AL LOTE / ACTUALIZAR TABLERO) */
     div.stButton > button[kind="primary"] {{
-        background-color: #FFFFFF !important;
-        color: #011936 !important;
+        background-color: #FFFFFF !important; color: #011936 !important;
         border: 2px solid #011936 !important;
     }}
     div.stButton > button[kind="primary"]:hover {{
@@ -280,8 +287,7 @@ if dark_mode:
         transition: border-color 0.3s ease !important;
     }}
     .stSelectbox div[data-baseweb="select"] > div:hover {{
-        border-color: #F2F2F2 !important;
-        cursor: pointer;
+        border-color: #F2F2F2 !important; cursor: pointer;
     }}
 
     section[data-testid="stSidebar"] {{ display: none; }}
@@ -338,8 +344,7 @@ else:
         transition: border-color 0.3s ease !important;
     }}
     .stSelectbox div[data-baseweb="select"] > div:hover {{
-        border-color: #9D8420 !important;
-        cursor: pointer;
+        border-color: #9D8420 !important; cursor: pointer;
     }}
 
     /* BOTONES GENERALES (SECUNDARIOS) */
@@ -353,8 +358,7 @@ else:
 
     /* BOTONES PRIMARY (AGREGAR AL LOTE / ACTUALIZAR TABLERO) */
     div.stButton > button[kind="primary"] {{
-        background-color: #FFFFFF !important;
-        color: #011936 !important;
+        background-color: #FFFFFF !important; color: #011936 !important;
         border: 2px solid #011936 !important;
     }}
     div.stButton > button[kind="primary"]:hover {{
@@ -378,7 +382,7 @@ else:
     </style>
     """, unsafe_allow_html=True)
 
-# --- MÓDULO 1: GESTIÓN MANUAL (YA SIN IA) ---
+# --- MÓDULO 1: GESTIÓN MANUAL ---
 if modo_app == T["nav_load"]:
     
     # Header de Selección Global
@@ -392,7 +396,7 @@ if modo_app == T["nav_load"]:
     
     st.markdown("---")
     
-    # Formulario Manual (Ahora ocupa todo el ancho)
+    # Formulario Manual
     st.subheader(T["val_header"])
     if "df_ia" not in st.session_state: st.session_state.df_ia = pd.DataFrame()
     
@@ -442,12 +446,11 @@ if modo_app == T["nav_load"]:
                 m_des = st.selectbox("Desagregación", LISTA_DESAGREGACION, key="sel_des")
                 m_uni = st.selectbox("Unidad", LISTA_UNIDADES, key="sel_uni")
             
-            # CAMBIO AQUÍ: Layout para Valor y Checkbox juntos
+            # Layout para Valor y Checkbox juntos
             with c2:
-                col_valor_input, col_valor_chk = st.columns([0.65, 0.35]) # 65% Input, 35% Checkbox
+                col_valor_input, col_valor_chk = st.columns([0.65, 0.35])
                 
                 with col_valor_chk:
-                    # Espaciadores para alinear verticalmente el checkbox con el input
                     st.write("") 
                     st.write("") 
                     is_no_especifico = st.checkbox(T["chk_no_espec"], key="chk_no_espec")
@@ -510,7 +513,6 @@ if modo_app == T["nav_load"]:
 # --- MÓDULO 2: VISUALIZACIÓN ---
 elif modo_app == T["nav_view"]:
     st.subheader(T["view_title"])
-    # CAMBIO AQUÍ: Botón Actualizar ahora es PRIMARY
     if st.button(T["view_refresh"], type="primary"):
         st.cache_data.clear()
         st.rerun()
@@ -518,24 +520,58 @@ elif modo_app == T["nav_view"]:
     try:
         df_historico = cargar_datos_sheet()
         if not df_historico.empty:
-            # --- FILTROS ---
-            c_fil1, c_fil2, c_fil3 = st.columns(3)
-            with c_fil1:
-                filtro_pais = st.multiselect("Filtrar por País", df_historico["UID"].astype(str).str.split("-").str[0].unique())
-            with c_fil2:
-                filtro_derecho = st.multiselect("Filtrar por Derecho", df_historico["DERECHO"].unique())
-            with c_fil3:
-                df_historico["AÑO"] = df_historico["AÑO"].astype(str)
-                filtro_anio = st.multiselect("Filtrar por Año", sorted(df_historico["AÑO"].unique()))
             
-            # --- FILTRADO DATOS ---
+            # --- LOGICA DE FILTROS Y DEFAULTS ---
+            
+            # 1. Obtener listas únicas disponibles en la BD
+            # Extraemos los códigos de país de los UIDs (ej: VEN, ARG)
+            paises_disponibles_code = sorted(list(set([str(uid).split("-")[0] for uid in df_historico["UID"] if "-" in str(uid)])))
+            derechos_disponibles = sorted(df_historico["DERECHO"].unique())
+            # Años ordenados de MAYOR a MENOR (Descendente) para que el index 0 sea el más reciente
+            anios_disponibles = sorted(df_historico["AÑO"].astype(str).unique(), reverse=True)
+
+            # 2. Definir valores por defecto (index 0)
+            # Nota: Usamos selectbox para garantizar la vista "un solo año a la vez"
+            
+            c_fil1, c_fil2, c_fil3 = st.columns(3)
+            
+            with c_fil1:
+                # Filtrar País
+                sel_pais_code = st.selectbox(
+                    "Filtrar por País", 
+                    paises_disponibles_code, 
+                    index=0 if paises_disponibles_code else None
+                )
+            
+            with c_fil2:
+                # Filtrar Derecho
+                sel_derecho = st.selectbox(
+                    "Filtrar por Derecho", 
+                    derechos_disponibles, 
+                    index=0 if derechos_disponibles else None
+                )
+            
+            with c_fil3:
+                # Filtrar Año (Default: El más reciente)
+                sel_anio = st.selectbox(
+                    "Filtrar por Año", 
+                    anios_disponibles, 
+                    index=0 if anios_disponibles else None
+                )
+            
+            # --- APLICACIÓN DE FILTROS ---
             df_show = df_historico.copy()
-            if filtro_pais:
-                df_show = df_show[df_show["UID"].astype(str).str.split("-").str[0].isin(filtro_pais)]
-            if filtro_derecho:
-                df_show = df_show[df_show["DERECHO"].isin(filtro_derecho)]
-            if filtro_anio:
-                df_show = df_show[df_show["AÑO"].isin(filtro_anio)]
+            df_show["AÑO"] = df_show["AÑO"].astype(str)
+
+            if sel_pais_code:
+                # Filtramos verificando que el UID empiece con el código seleccionado
+                df_show = df_show[df_show["UID"].astype(str).str.startswith(sel_pais_code)]
+            
+            if sel_derecho:
+                df_show = df_show[df_show["DERECHO"] == sel_derecho]
+            
+            if sel_anio:
+                df_show = df_show[df_show["AÑO"] == sel_anio]
             
             # --- CÁLCULOS DE PROGRESO ---
             indicadores_cargados_total = df_show["REF_INDICADOR"].nunique() if not df_show.empty else 0
@@ -549,8 +585,9 @@ elif modo_app == T["nav_view"]:
                     elif "Proceso" in cat_str: cargados_cat["Procesos"] += count
                     elif "Resultado" in cat_str: cargados_cat["Resultados"] += count
 
-            # Cálculo de METAS
-            meta_total_calculada, metas_por_categoria = calcular_metas_catalogo(filtro_derecho if filtro_derecho else None)
+            # Cálculo de METAS (Basado en el Derecho seleccionado)
+            # Nota: Al usar selectbox, sel_derecho es un string, calculate_metas lo maneja.
+            meta_total_calculada, metas_por_categoria = calcular_metas_catalogo(sel_derecho)
             
             # --- VISUALIZACIÓN ---
             st.divider()
@@ -561,7 +598,7 @@ elif modo_app == T["nav_view"]:
             # Gráfico Principal
             col_main_chart = st.columns([1, 2, 1])
             with col_main_chart[1]:
-                st.markdown(f"<h3 style='text-align: center; color:{text_color_charts}'>Progreso Global</h3>", unsafe_allow_html=True)
+                st.markdown(f"<h3 style='text-align: center; color:{text_color_charts}'>Progreso Global {sel_anio}</h3>", unsafe_allow_html=True)
                 fig_main = crear_donut(
                     indicadores_cargados_total, 
                     meta_total_calculada, 
