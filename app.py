@@ -164,8 +164,10 @@ def calcular_metas_catalogo(derecho_filtro=None):
     meta_total = 0
     metas_cat = {"Estructurales": 0, "Procesos": 0, "Resultados": 0}
     for derecho, agrupamientos in CATALOGO_INDICADORES.items():
-        if derecho_filtro and "TODOS" not in derecho_filtro:
-            if derecho not in derecho_filtro: continue
+        # V47: Ajuste para "Todos" (Title Case)
+        if derecho_filtro and derecho_filtro != "Todos":
+            if derecho != derecho_filtro: continue
+            
         for agrup, categorias in agrupamientos.items():
             for cat_nombre, lista_inds in categorias.items():
                 cantidad = len(lista_inds)
@@ -475,35 +477,43 @@ elif modo_app == T["nav_view"]:
         c_fil1, c_fil2, c_fil3 = st.columns(3)
         list_paises = sorted(list(MAPA_PAISES.keys()))
         list_derechos = sorted(list(MAPA_DERECHOS.keys()))
-        idx_pais = 0 
         max_anio = 2024 
         if not df_historico.empty and "AÑO" in df_historico.columns:
             try: max_anio = int(df_historico["AÑO"].max())
             except: pass
         
         with c_fil1:
-            opciones_pais = ["TODOS"] + list_paises
-            filtro_pais = st.multiselect("Filtrar por País", opciones_pais, default=[list_paises[0]])
+            # V47: Sin "TODOS", selección única
+            filtro_pais = st.selectbox("Filtrar por País", list_paises, index=0)
         
         with c_fil2:
-            opciones_derecho = ["TODOS"] + list_derechos
-            # MODIFICACIÓN V45: Sin selección por defecto
-            filtro_derecho = st.multiselect("Filtrar por Derecho", opciones_derecho)
+            # V47: "Todos" (Title Case)
+            opciones_derecho = ["Todos"] + list_derechos
+            filtro_derecho = st.selectbox("Filtrar por Derecho", opciones_derecho, index=0)
             
         with c_fil3:
+            # V47: Sin "TODOS", selección única con default a max_anio si posible
             opciones_anio = [str(x) for x in range(2000, 2031)]
-            default_anio = [str(max_anio)] if str(max_anio) in opciones_anio else []
-            filtro_anio = st.multiselect("Filtrar por Año (Dashboard)", opciones_anio, default=default_anio)
+            try:
+                idx_anio = opciones_anio.index(str(max_anio))
+            except:
+                idx_anio = 0
+            filtro_anio = st.selectbox("Filtrar por Año (Dashboard)", opciones_anio, index=idx_anio)
         
+        # --- LÓGICA DE FILTRADO ---
         if not df_historico.empty:
             df_show = df_historico.copy()
-            if filtro_pais and "TODOS" not in filtro_pais:
-                codigos_sel = [MAPA_PAISES[p] for p in filtro_pais if p in MAPA_PAISES]
-                df_show = df_show[df_show["UID"].astype(str).apply(lambda x: x.split("-")[0] in codigos_sel)]
-            if filtro_derecho and "TODOS" not in filtro_derecho:
-                df_show = df_show[df_show["DERECHO"].isin(filtro_derecho)]
-            if filtro_anio:
-                df_show = df_show[df_show["AÑO"].astype(str).isin(filtro_anio)]
+            # 1. País (Siempre filtra porque ya no hay TODOS)
+            if filtro_pais in MAPA_PAISES:
+                code_pais = MAPA_PAISES[filtro_pais]
+                df_show = df_show[df_show["UID"].astype(str).str.startswith(code_pais)]
+            
+            # 2. Derecho (Filtra si != Todos)
+            if filtro_derecho != "Todos":
+                df_show = df_show[df_show["DERECHO"] == filtro_derecho]
+                
+            # 3. Año (Siempre filtra porque ya no hay TODOS)
+            df_show = df_show[df_show["AÑO"].astype(str) == filtro_anio]
         else:
             df_show = pd.DataFrame()
 
@@ -555,6 +565,7 @@ elif modo_app == T["nav_view"]:
             anios_disp_ind = []
             if sel_ind_comp and not df_show.empty:
                 anios_disp_ind = sorted(df_show[df_show["INDICADOR"] == sel_ind_comp]["AÑO"].unique().astype(str))
+            # V47: Este se mantiene como MULTISELECT para poder comparar años
             sel_anios_comp = st.multiselect("Seleccione Años", anios_disp_ind, default=anios_disp_ind)
 
         if sel_ind_comp and sel_anios_comp and not df_show.empty:
