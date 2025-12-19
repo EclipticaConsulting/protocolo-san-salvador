@@ -128,8 +128,6 @@ def generar_uid(row, pais_nombre, anio_informe, derecho_seleccionado):
 @st.cache_resource
 def conectar_google_sheet():
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    
-    # Intenta usar st.secrets primero (Nube), sino busca archivo local (Local)
     if "gcp_service_account" in st.secrets:
         creds_dict = st.secrets["gcp_service_account"]
         credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
@@ -139,7 +137,6 @@ def conectar_google_sheet():
         except:
             st.error("No se encontraron credenciales válidas.")
             return None
-        
     gc = gspread.authorize(credentials)
     sh = gc.open("Protocolo San Salvador")
     try: return sh.worksheet("Base_Datos")
@@ -147,8 +144,7 @@ def conectar_google_sheet():
 
 def guardar_en_sheet(df):
     ws = conectar_google_sheet()
-    if ws:
-        ws.append_rows(df.values.tolist())
+    if ws: ws.append_rows(df.values.tolist())
 
 def cargar_datos_sheet():
     ws = conectar_google_sheet()
@@ -188,27 +184,21 @@ def calcular_metas_catalogo(derecho_filtro=None):
     metas_cat = {"Estructurales": 0, "Procesos": 0, "Resultados": 0}
     
     for derecho, agrupamientos in CATALOGO_INDICADORES.items():
-        # Si hay filtro y NO es "TODOS", filtramos
         if derecho_filtro and "TODOS" not in derecho_filtro:
             if derecho not in derecho_filtro:
                 continue
-        
         for agrup, categorias in agrupamientos.items():
             for cat_nombre, lista_inds in categorias.items():
                 cantidad = len(lista_inds)
                 meta_total += cantidad
-                # Normalizar nombres de categorías
                 cat_norm = cat_nombre.strip()
                 if "Estructural" in cat_norm: metas_cat["Estructurales"] += cantidad
                 elif "Proceso" in cat_norm: metas_cat["Procesos"] += cantidad
                 elif "Resultado" in cat_norm: metas_cat["Resultados"] += cantidad
-    
     return meta_total, metas_cat
 
 def crear_donut(valor, meta, color_fill, color_empty, titulo_centro, text_color):
-    # Evitar divisiones por cero o valores negativos visuales
     restante = max(0, meta - valor)
-    
     fig = go.Figure(data=[go.Pie(
         labels=['Completado', 'Faltante'],
         values=[valor, restante],
@@ -218,16 +208,9 @@ def crear_donut(valor, meta, color_fill, color_empty, titulo_centro, text_color)
         sort=False,
         hoverinfo='label+value'
     )])
-    
     fig.update_layout(
         showlegend=False,
-        annotations=[dict(
-            text=titulo_centro, 
-            x=0.5, y=0.5, 
-            font_size=24, 
-            showarrow=False, 
-            font=dict(color=text_color, family="Arial", weight="bold")
-        )],
+        annotations=[dict(text=titulo_centro, x=0.5, y=0.5, font_size=24, showarrow=False, font=dict(color=text_color, family="Arial", weight="bold"))],
         margin=dict(t=10, b=10, l=10, r=10),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
@@ -241,7 +224,6 @@ header_container = st.container()
 
 with header_container:
     col_title, col_nav, col_settings = st.columns([1.5, 2.5, 1])
-    
     with col_settings:
         sub_c1, sub_c2 = st.columns([1.2, 0.8])
         with sub_c1:
@@ -250,13 +232,10 @@ with header_container:
             T = TEXTOS[lang]
         with sub_c2:
             if "dark_mode" not in st.session_state: st.session_state.dark_mode = False
-            
             icon_display = "🌙" if st.session_state.dark_mode else "☀️"
-            
             if st.button(icon_display, key="btn_theme_toggle", use_container_width=True):
                 st.session_state.dark_mode = not st.session_state.dark_mode
                 st.rerun()
-                
             dark_mode = st.session_state.dark_mode
 
     with col_title:
@@ -264,24 +243,10 @@ with header_container:
          st.markdown(f"<h3 style='margin:0; padding-top:15px; font-weight:700; color:{title_color};'>{T['title']}</h3>", unsafe_allow_html=True)
 
     with col_nav:
-        # Lógica para persistencia de la pestaña (Tab) al cambiar modo
         if "nav_index" not in st.session_state: st.session_state.nav_index = 0
-        
         opciones_nav = [T['nav_load'], T['nav_view']]
-        
-        # Aseguramos que el índice sea válido
         if st.session_state.nav_index >= len(opciones_nav): st.session_state.nav_index = 0
-        
-        modo_app = st.radio(
-            "",
-            opciones_nav,
-            index=st.session_state.nav_index, 
-            horizontal=True,
-            label_visibility="collapsed",
-            key="nav_radio"
-        )
-        
-        # Actualizamos el estado con la selección actual
+        modo_app = st.radio("", opciones_nav, index=st.session_state.nav_index, horizontal=True, label_visibility="collapsed", key="nav_radio")
         if modo_app == T['nav_load']: st.session_state.nav_index = 0
         else: st.session_state.nav_index = 1
 
@@ -292,7 +257,6 @@ img_base64 = get_base64_image("watermark_protocolo.png")
 
 # --- CSS STYLING ---
 if dark_mode:
-    # --- MODO OSCURO (Con texto de botones azul oscuro) ---
     st.markdown(f"""
     <style>
     .stApp {{ background-color: #011936; color: #F2F2F2; }}
@@ -309,8 +273,6 @@ if dark_mode:
     }}
     .main .block-container {{ z-index: 1; position: relative; padding-top: 8rem !important; }}
     .stApp > header {{ display: none !important; }}
-    
-    /* NAV (TABS) - DARK */
     div[data-testid="stRadio"] label {{ 
         background-color: transparent !important; color: #B0B0B0 !important; 
         padding: 8px 20px; border-radius: 20px; font-weight: 600; border: 1px solid transparent; 
@@ -326,49 +288,31 @@ if dark_mode:
     }}
     div[data-testid="stRadio"] > div {{ display: flex; justify_content: center; gap: 20px; align-items: center; }}
     div[role="radiogroup"] > label > div:first-child {{ display: none !important; }}
-
-    /* ELEMENTOS GRALES */
     div[data-testid="stMetric"], div[data-testid="stForm"], .stDataFrame {{ 
         background-color: #465362; border: 1px solid #9D8420; border-radius: 8px; padding: 15px; 
     }}
     div[data-testid="metric-container"] {{ display: flex; justify-content: center; flex-direction: column; align-items: center; }}
     h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, .stMetricLabel {{ color: #F2F2F2 !important; }}
     div[data-testid="stMetricValue"] {{ color: #9D8420 !important; }}
-    
-    /* BOTONES MODO OSCURO - TEXTO AZUL OSCURO */
     div.stButton > button {{ 
-        background-color: #E0E0E0 !important; 
-        color: #011936 !important; /* COLOR DEL TEXTO FORZADO */
-        border: 1px solid #9D8420 !important; 
-        font-weight: bold !important; 
-        transition: all 0.3s ease; 
+        background-color: #E0E0E0 !important; color: #011936 !important; 
+        border: 1px solid #9D8420 !important; font-weight: bold !important; transition: all 0.3s ease; 
     }}
-    div.stButton > button p {{ 
-        color: #011936 !important; /* COLOR DEL PÁRRAFO INTERNO */
-    }}
+    div.stButton > button p {{ color: #011936 !important; }}
     div.stButton > button:hover {{ 
-        background-color: #9D8420 !important; 
-        border-color: #F2F2F2 !important; 
+        background-color: #9D8420 !important; border-color: #F2F2F2 !important; 
     }}
-    /* Para asegurar legibilidad al hover */
-    div.stButton > button:hover p {{ 
-        color: #F2F2F2 !important; 
-    }}
-    
-    /* EXPANDER */
+    div.stButton > button:hover p {{ color: #F2F2F2 !important; }}
     div[data-testid="stExpander"] {{
-        background-color: #465362 !important; border: 0px solid rgba(255,255,255,0.1) !important; 
-        color: #F2F2F2 !important;
+        background-color: #465362 !important; border: 0px solid rgba(255,255,255,0.1) !important; color: #F2F2F2 !important;
     }}
     div[data-testid="stExpander"] details summary {{ color: #F2F2F2 !important; }}
     div[data-testid="stExpander"] details summary:hover {{ color: #9D8420 !important; }}
     div[data-testid="stExpander"] div[data-testid="stMarkdownContainer"] p {{ color: #F2F2F2 !important; }}
-
     section[data-testid="stSidebar"] {{ display: none; }}
     </style>
     """, unsafe_allow_html=True)
 else:
-    # --- MODO CLARO ---
     st.markdown(f"""
     <style>
     .stApp {{ background-color: #F2F2F2; color: #011936; }}
@@ -385,8 +329,6 @@ else:
     }}
     .main .block-container {{ z-index: 1; position: relative; padding-top: 8rem !important; }}
     .stApp > header {{ display: none !important; }}
-    
-    /* NAV (SIN CÍRCULOS) */
     div[role="radiogroup"] > label > div:first-child {{ display: none !important; }}
     div[data-testid="stRadio"] label {{ 
         background-color: transparent; color: #465362 !important; font-weight: 400 !important;
@@ -401,8 +343,6 @@ else:
         border: 2px solid #011936 !important; box-shadow: 0px 4px 8px rgba(0,0,0,0.3);
     }}
     div[role="radiogroup"] label[data-checked="true"] p {{ color: #FFFFFF !important; }}
-    
-    /* SELECTORES & INPUTS */
     .stSelectbox div[data-baseweb="select"] > div, .stTextInput input {{
         background-color: #011936 !important; color: #FFFFFF !important; border: 1px solid #465362 !important;
     }}
@@ -412,16 +352,12 @@ else:
     div[data-baseweb="select"] svg {{ fill: #FFFFFF !important; }}
     ul[data-baseweb="menu"] {{ background-color: #011936 !important; }}
     li[data-baseweb="option"] {{ color: #FFFFFF !important; }}
-
-    /* EXPANDER */
     div[data-testid="stExpander"] {{ 
         background-color: #011936 !important; border: 1px solid #011936; border-radius: 8px; color: #FFFFFF !important; 
     }}
     div[data-testid="stExpander"] * {{ color: #FFFFFF !important; }}
     div[data-testid="stExpander"] input {{ color: #FFFFFF !important; }}
     div[data-testid="stExpander"] div[data-baseweb="select"] div {{ color: #FFFFFF !important; }}
-
-    /* BOTONES */
     .stButton button, [data-testid="stFileUploader"] button {{ 
         background-color: #011936 !important; color: #FFFFFF !important; border: 2px solid #011936; 
         border-radius: 8px; font-weight: 500 !important;
@@ -430,12 +366,9 @@ else:
         background-color: #9D8420 !important; color: #FFFFFF !important; border-color: #9D8420 !important;
     }}
     .stButton button p {{ color: inherit !important; }}
-
-    /* Textos Generales */
     p, h1, h2, h3, h4, h5, h6, label, .stMarkdown, .stRadio label {{ color: #011936 !important; }}
     div[data-testid="stMetricLabel"] {{ color: #011936 !important; }}
     div[data-testid="stMetricValue"] {{ color: #9D8420 !important; }}
-    
     section[data-testid="stSidebar"] {{ display: none; }}
     </style>
     """, unsafe_allow_html=True)
@@ -476,7 +409,6 @@ if modo_app == T["nav_load"]:
                     df_acum = pd.DataFrame()
                     prog = st.progress(0)
                     status = st.empty()
-                    
                     for i in range(start-1, end):
                         try: txt = reader.pages[i].extract_text()
                         except: txt = ""
@@ -486,9 +418,7 @@ if modo_app == T["nav_load"]:
                             df_pag["DERECHO"] = der_sel
                             df_acum = pd.concat([df_acum, df_pag], ignore_index=True)
                         prog.progress((i - start + 2)/(end - start + 1))
-                    
                     prog.empty(); status.empty()
-                    
                     if not df_acum.empty:
                         base_count = 1
                         if "df_ia" in st.session_state and not st.session_state.df_ia.empty:
@@ -510,32 +440,24 @@ if modo_app == T["nav_load"]:
                     agrupamientos_disp = list(CATALOGO_INDICADORES[der_sel].keys())
                 else:
                     agrupamientos_disp = ["No hay datos cargados"]
-                
                 m_agr = st.selectbox("Agrupamiento", agrupamientos_disp, key="sel_agr")
-                
                 categorias_disp = []
                 if der_sel in CATALOGO_INDICADORES and m_agr in CATALOGO_INDICADORES[der_sel]:
                     categorias_disp = list(CATALOGO_INDICADORES[der_sel][m_agr].keys())
-                
                 m_cat = st.selectbox("Categoría", categorias_disp if categorias_disp else ["Estructural", "Proceso", "Resultado"], key="sel_cat")
-                
                 indicadores_obj = []
                 if der_sel in CATALOGO_INDICADORES and m_agr in CATALOGO_INDICADORES[der_sel] and m_cat in CATALOGO_INDICADORES[der_sel][m_agr]:
                     indicadores_obj = CATALOGO_INDICADORES[der_sel][m_agr][m_cat]
-                
                 opciones_ind = [f"[{x[0]}] {x[1]}" for x in indicadores_obj]
                 seleccion_ind = st.selectbox("Indicador", opciones_ind if opciones_ind else ["Otro / Personalizado"], key="sel_ind")
-                
                 if seleccion_ind and "[" in seleccion_ind:
                     ref_auto = seleccion_ind.split("]")[0].replace("[", "")
                     nombre_ind = seleccion_ind.split("] ")[1]
                 else:
                     ref_auto = "000"
                     nombre_ind = seleccion_ind
-                
                 st.info(f"📌 Referencia Asignada: **{ref_auto}**")
                 st.markdown("---")
-
                 c1, c2 = st.columns(2)
                 with c1:
                     m_des = st.selectbox("Desagregación", LISTA_DESAGREGACION, key="sel_des")
@@ -543,7 +465,6 @@ if modo_app == T["nav_load"]:
                 with c2:
                     m_val = st.text_input("Valor", key="input_val")
                     m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue")
-                
                 if st.button(T["manual_btn"], type="primary", use_container_width=True):
                     if not pais_sel or not der_sel or not anio_sel:
                         st.error(T["err_missing_meta"])
@@ -560,9 +481,7 @@ if modo_app == T["nav_load"]:
             cols = ["UID", "DERECHO", "CATEGORÍA", "INDICADOR", "AGRUPAMIENTO", "DESAGREGACIÓN", "UNIDAD", "AÑO", "VALOR", "FUENTE", "ESTADO_DATO", "REF_INDICADOR"]
             for c in cols: 
                 if c not in df_work.columns: df_work[c]=""
-            
             df_fin = st.data_editor(df_work[cols], num_rows="dynamic", height=400, use_container_width=True)
-            
             cb1, cb2 = st.columns(2)
             with cb1:
                 if st.button(T["btn_save"], type="secondary", use_container_width=True):
@@ -589,108 +508,128 @@ elif modo_app == T["nav_view"]:
     
     try:
         df_historico = cargar_datos_sheet()
+        
+        # --- FILTROS (V42: Listas completas + Opción TODOS) ---
+        c_fil1, c_fil2, c_fil3 = st.columns(3)
+        with c_fil1:
+            # Lista completa de países (aunque no tengan datos)
+            opciones_pais = ["TODOS"] + sorted(list(MAPA_PAISES.keys()))
+            filtro_pais = st.multiselect("Filtrar por País", opciones_pais)
+        
+        with c_fil2:
+            # Lista completa de derechos
+            opciones_derecho = ["TODOS"] + sorted(list(MAPA_DERECHOS.keys()))
+            filtro_derecho = st.multiselect("Filtrar por Derecho", opciones_derecho)
+            
+        with c_fil3:
+            # Filtro de Año (V42)
+            opciones_anio = ["TODOS"] + [str(x) for x in range(2000, 2031)]
+            filtro_anio = st.multiselect("Filtrar por Año", opciones_anio)
+        
+        # --- LÓGICA DE FILTRADO ---
         if not df_historico.empty:
-            # --- FILTROS ---
-            c_fil1, c_fil2 = st.columns(2)
-            with c_fil1:
-                filtro_pais = st.multiselect("Filtrar por País", df_historico["UID"].astype(str).str.split("-").str[0].unique())
-            with c_fil2:
-                # Modificación: Opción "TODOS" añadida
-                opciones_derecho = ["TODOS"] + sorted(list(df_historico["DERECHO"].unique()))
-                filtro_derecho = st.multiselect("Filtrar por Derecho", opciones_derecho)
-            
-            # --- FILTRADO DATOS ---
             df_show = df_historico.copy()
-            if filtro_pais:
-                df_show = df_show[df_show["UID"].astype(str).str.split("-").str[0].isin(filtro_pais)]
             
-            # Lógica filtro derecho con "TODOS"
+            # 1. Filtro País
+            if filtro_pais and "TODOS" not in filtro_pais:
+                # Mapear nombres a códigos si es necesario, o filtrar por texto si en sheet guardaste nombres
+                # El UID tiene el código (e.g. VEN). El selector tiene el Nombre (Venezuela).
+                codigos_seleccionados = [MAPA_PAISES[p] for p in filtro_pais if p in MAPA_PAISES]
+                # Filtramos por el UID que empieza con el código
+                mask_pais = df_show["UID"].apply(lambda x: str(x).split("-")[0] in codigos_seleccionados)
+                df_show = df_show[mask_pais]
+
+            # 2. Filtro Derecho
             if filtro_derecho and "TODOS" not in filtro_derecho:
                 df_show = df_show[df_show["DERECHO"].isin(filtro_derecho)]
-            
-            # --- CÁLCULOS DE PROGRESO ---
-            # 1. Total Cargados (Real)
-            indicadores_cargados_total = df_show["REF_INDICADOR"].nunique() if not df_show.empty else 0
-            
-            # 2. Desglose por Categoría (Real)
-            cargados_cat = {"Estructurales": 0, "Procesos": 0, "Resultados": 0}
-            if not df_show.empty and "CATEGORÍA" in df_show.columns:
-                for cat in df_show["CATEGORÍA"].unique():
-                    cat_str = str(cat).strip()
-                    count = df_show[df_show["CATEGORÍA"] == cat]["REF_INDICADOR"].nunique()
-                    if "Estructural" in cat_str: cargados_cat["Estructurales"] += count
-                    elif "Proceso" in cat_str: cargados_cat["Procesos"] += count
-                    elif "Resultado" in cat_str: cargados_cat["Resultados"] += count
-
-            # 3. Cálculo de METAS (Basado en el Catálogo)
-            meta_total_calculada, metas_por_categoria = calcular_metas_catalogo(filtro_derecho if filtro_derecho else None)
-            
-            # --- VISUALIZACIÓN ---
-            st.divider()
-            
-            # Colores Dashboard
-            text_color_charts = "#F2F2F2" if dark_mode else "#011936"
-            color_missing = "#ff4444" # Rojo para faltante
-            
-            # 1. GRÁFICO PRINCIPAL (Anillo Grande)
-            col_main_chart = st.columns([1, 2, 1])
-            with col_main_chart[1]:
-                # Título Cambiado
-                st.markdown(f"<h3 style='text-align: center; color:{text_color_charts}'>{T['dash_chart_bar']}</h3>", unsafe_allow_html=True)
-                fig_main = crear_donut(
-                    indicadores_cargados_total, 
-                    meta_total_calculada, 
-                    "#00C851", # Verde
-                    color_missing, 
-                    f"{indicadores_cargados_total} / {meta_total_calculada}",
-                    text_color_charts
-                )
-                st.plotly_chart(fig_main, use_container_width=True)
-
-            # 2. GRÁFICOS SECUNDARIOS (3 Anillos Pequeños)
-            c1, c2, c3 = st.columns(3)
-            
-            with c1:
-                st.markdown(f"<h5 style='text-align: center; color:{text_color_charts}'>Estructurales</h5>", unsafe_allow_html=True)
-                fig_est = crear_donut(
-                    cargados_cat["Estructurales"], 
-                    metas_por_categoria["Estructurales"], 
-                    "#33b5e5", # Azul
-                    color_missing,
-                    f"{cargados_cat['Estructurales']}/{metas_por_categoria['Estructurales']}",
-                    text_color_charts
-                )
-                st.plotly_chart(fig_est, use_container_width=True)
                 
-            with c2:
-                st.markdown(f"<h5 style='text-align: center; color:{text_color_charts}'>Procesos</h5>", unsafe_allow_html=True)
-                fig_proc = crear_donut(
-                    cargados_cat["Procesos"], 
-                    metas_por_categoria["Procesos"], 
-                    "#ffbb33", # Amarillo
-                    color_missing,
-                    f"{cargados_cat['Procesos']}/{metas_por_categoria['Procesos']}",
-                    text_color_charts
-                )
-                st.plotly_chart(fig_proc, use_container_width=True)
-                
-            with c3:
-                st.markdown(f"<h5 style='text-align: center; color:{text_color_charts}'>Resultados</h5>", unsafe_allow_html=True)
-                fig_res = crear_donut(
-                    cargados_cat["Resultados"], 
-                    metas_por_categoria["Resultados"], 
-                    "#aa66cc", # Morado
-                    color_missing,
-                    f"{cargados_cat['Resultados']}/{metas_por_categoria['Resultados']}",
-                    text_color_charts
-                )
-                st.plotly_chart(fig_res, use_container_width=True)
-
-            st.divider()
-            with st.expander(T["dash_expander_table"]):
-                st.dataframe(df_show, use_container_width=True, height=600)
+            # 3. Filtro Año
+            if filtro_anio and "TODOS" not in filtro_anio:
+                # Asegurar que la columna AÑO sea string para comparar
+                df_show = df_show[df_show["AÑO"].astype(str).isin(filtro_anio)]
         else:
-            st.warning("La hoja de cálculo está vacía o no se pudo leer.")
+            df_show = pd.DataFrame()
+
+        # --- CÁLCULOS KPI ---
+        indicadores_cargados_total = df_show["REF_INDICADOR"].nunique() if not df_show.empty else 0
+        
+        cargados_cat = {"Estructurales": 0, "Procesos": 0, "Resultados": 0}
+        if not df_show.empty and "CATEGORÍA" in df_show.columns:
+            for cat in df_show["CATEGORÍA"].unique():
+                cat_str = str(cat).strip()
+                count = df_show[df_show["CATEGORÍA"] == cat]["REF_INDICADOR"].nunique()
+                if "Estructural" in cat_str: cargados_cat["Estructurales"] += count
+                elif "Proceso" in cat_str: cargados_cat["Procesos"] += count
+                elif "Resultado" in cat_str: cargados_cat["Resultados"] += count
+
+        # Meta Dinámica
+        meta_total_calculada, metas_por_categoria = calcular_metas_catalogo(filtro_derecho if filtro_derecho else None)
+        
+        # --- VISUALIZACIÓN ---
+        st.divider()
+        text_color_charts = "#F2F2F2" if dark_mode else "#011936"
+        color_missing = "#ff4444" 
+        
+        # 1. ANILLOS DE PROGRESO
+        col_main_chart = st.columns([1, 2, 1])
+        with col_main_chart[1]:
+            st.markdown(f"<h3 style='text-align: center; color:{text_color_charts}'>Progreso Global</h3>", unsafe_allow_html=True)
+            fig_main = crear_donut(
+                indicadores_cargados_total, 
+                meta_total_calculada, 
+                "#00C851", color_missing, 
+                f"{indicadores_cargados_total} / {meta_total_calculada}", 
+                text_color_charts
+            )
+            st.plotly_chart(fig_main, use_container_width=True)
+
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown(f"<h5 style='text-align: center; color:{text_color_charts}'>Estructurales</h5>", unsafe_allow_html=True)
+            fig_est = crear_donut(cargados_cat["Estructurales"], metas_por_categoria["Estructurales"], "#33b5e5", color_missing, f"{cargados_cat['Estructurales']}/{metas_por_categoria['Estructurales']}", text_color_charts)
+            st.plotly_chart(fig_est, use_container_width=True)
+        with c2:
+            st.markdown(f"<h5 style='text-align: center; color:{text_color_charts}'>Procesos</h5>", unsafe_allow_html=True)
+            fig_proc = crear_donut(cargados_cat["Procesos"], metas_por_categoria["Procesos"], "#ffbb33", color_missing, f"{cargados_cat['Procesos']}/{metas_por_categoria['Procesos']}", text_color_charts)
+            st.plotly_chart(fig_proc, use_container_width=True)
+        with c3:
+            st.markdown(f"<h5 style='text-align: center; color:{text_color_charts}'>Resultados</h5>", unsafe_allow_html=True)
+            fig_res = crear_donut(cargados_cat["Resultados"], metas_por_categoria["Resultados"], "#aa66cc", color_missing, f"{cargados_cat['Resultados']}/{metas_por_categoria['Resultados']}", text_color_charts)
+            st.plotly_chart(fig_res, use_container_width=True)
+
+        st.divider()
+
+        # 2. ANÁLISIS COMPARATIVO (Barras) - V42 RESTAURADO
+        st.markdown(f"<h3 style='color:{text_color_charts}'>{T['dash_chart_bar']}</h3>", unsafe_allow_html=True)
+        
+        if not df_show.empty:
+            # Agrupamos por Derecho y Categoría para contar indicadores
+            df_agrupado = df_show.groupby(["DERECHO", "CATEGORÍA"])["REF_INDICADOR"].nunique().reset_index()
+            df_agrupado.columns = ["Derecho", "Categoría", "Cantidad"]
+            
+            fig_bar = px.bar(
+                df_agrupado, 
+                x="Derecho", 
+                y="Cantidad", 
+                color="Categoría", 
+                barmode="group",
+                color_discrete_sequence=["#33b5e5", "#ffbb33", "#aa66cc"], # Azul, Amarillo, Morado
+                text="Cantidad"
+            )
+            
+            fig_bar.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color=text_color_charts),
+                legend=dict(font=dict(color=text_color_charts))
+            )
+            st.plotly_chart(fig_bar, use_container_width=True)
+        else:
+            st.info("No hay datos suficientes para mostrar el análisis comparativo.")
+
+        st.divider()
+        with st.expander(T["dash_expander_table"]):
+            st.dataframe(df_show, use_container_width=True, height=600)
             
     except Exception as e:
-        st.error(f"Error al conectar con Google Sheets: {e}")
+        st.error(f"Error en el Dashboard: {e}")
