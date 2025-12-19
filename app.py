@@ -246,7 +246,7 @@ if dark_mode:
     /* BOTONES GENERALES (SECUNDARIOS) */
     div.stButton > button {{ 
         background-color: #E0E0E0 !important; color: #011936 !important; 
-        border: 1px solid #9D8420 !important; font-weight: bold !important; transition: all 0.3s ease;
+        border: 1px solid #9D8420 !important; font-weight: bold !important; transition: all 0.3s ease; 
     }}
     div.stButton > button:hover {{ 
         background-color: #9D8420 !important; color: #F2F2F2 !important; border-color: #F2F2F2 !important; 
@@ -254,12 +254,14 @@ if dark_mode:
 
     /* BOTONES PRIMARY (AGREGAR AL LOTE / ACTUALIZAR TABLERO) */
     div.stButton > button[kind="primary"] {{
-        background-color: #FFFFFF !important; color: #011936 !important;
+        background-color: #FFFFFF !important;
+        color: #011936 !important;
         border: 2px solid #011936 !important;
     }}
     div.stButton > button[kind="primary"]:hover {{
         background-color: #FFF59D !important; /* AMARILLO CLARO */
-        color: #011936 !important; border-color: #011936 !important;
+        color: #011936 !important; 
+        border-color: #011936 !important;
     }}
     
     /* EXPANDER (DETALLE REGISTROS) */
@@ -278,7 +280,8 @@ if dark_mode:
         transition: border-color 0.3s ease !important;
     }}
     .stSelectbox div[data-baseweb="select"] > div:hover {{
-        border-color: #F2F2F2 !important; cursor: pointer;
+        border-color: #F2F2F2 !important;
+        cursor: pointer;
     }}
 
     section[data-testid="stSidebar"] {{ display: none; }}
@@ -335,7 +338,8 @@ else:
         transition: border-color 0.3s ease !important;
     }}
     .stSelectbox div[data-baseweb="select"] > div:hover {{
-        border-color: #9D8420 !important; cursor: pointer;
+        border-color: #9D8420 !important;
+        cursor: pointer;
     }}
 
     /* BOTONES GENERALES (SECUNDARIOS) */
@@ -349,12 +353,14 @@ else:
 
     /* BOTONES PRIMARY (AGREGAR AL LOTE / ACTUALIZAR TABLERO) */
     div.stButton > button[kind="primary"] {{
-        background-color: #FFFFFF !important; color: #011936 !important;
+        background-color: #FFFFFF !important;
+        color: #011936 !important;
         border: 2px solid #011936 !important;
     }}
     div.stButton > button[kind="primary"]:hover {{
         background-color: #FFF59D !important; /* AMARILLO CLARO */
-        color: #011936 !important; border-color: #011936 !important;
+        color: #011936 !important; 
+        border-color: #011936 !important;
     }}
     
     /* EXPANDER (DETALLE REGISTROS) */
@@ -504,83 +510,58 @@ if modo_app == T["nav_load"]:
 # --- MÓDULO 2: VISUALIZACIÓN ---
 elif modo_app == T["nav_view"]:
     st.subheader(T["view_title"])
-    
-    # Botón Actualizar
+    # CAMBIO AQUÍ: Botón Actualizar ahora es PRIMARY
     if st.button(T["view_refresh"], type="primary"):
         st.cache_data.clear()
         st.rerun()
     
     try:
         df_historico = cargar_datos_sheet()
-        
         if not df_historico.empty:
-            # 1. PREPARACIÓN DE DATOS (Mapeo de códigos a nombres)
-            # Extraemos el código de país del UID (ej: VEN-EST-23...) -> 'VEN'
-            df_historico["COD_PAIS"] = df_historico["UID"].astype(str).str.split("-").str[0]
-            
-            # Invertimos el mapa para obtener nombres: {'VEN': 'Venezuela'}
-            inv_map_paises = {v: k for k, v in MAPA_PAISES.items()}
-            df_historico["PAIS_NOMBRE"] = df_historico["COD_PAIS"].map(inv_map_paises)
-            
-            # Aseguramos que el año sea string para consistencia
-            df_historico["AÑO"] = df_historico["AÑO"].astype(str)
-
-            # ---------------------------------------------------------
-            # SECCIÓN 1: LA FOTO DEL MOMENTO (FILTROS GLOBALES UNICOS)
-            # ---------------------------------------------------------
-            st.divider()
-            
-            # --- Lógica de Defaults ---
-            # País: Primero alfabéticamente (A-Z) de los registrados
-            paises_disponibles = sorted([p for p in df_historico["PAIS_NOMBRE"].unique() if pd.notna(p)])
-            idx_pais_def = 0
-            
-            # Derecho: Primero alfabéticamente (A-Z) de los registrados
-            derechos_disponibles = sorted([d for d in df_historico["DERECHO"].unique() if pd.notna(d)])
-            idx_der_def = 0
-            
-            # Año: El más reciente (Descendente) de los registrados
-            anios_disponibles = sorted([a for a in df_historico["AÑO"].unique() if pd.notna(a)], reverse=True)
-            idx_anio_def = 0
-
-            # --- Renderizado de Filtros Superiores ---
+            # --- FILTROS ---
             c_fil1, c_fil2, c_fil3 = st.columns(3)
             with c_fil1:
-                sel_pais = st.selectbox(T["meta_country"], paises_disponibles, index=idx_pais_def)
+                filtro_pais = st.multiselect("Filtrar por País", df_historico["UID"].astype(str).str.split("-").str[0].unique())
             with c_fil2:
-                sel_derecho = st.selectbox(T["meta_right"], derechos_disponibles, index=idx_der_def)
+                filtro_derecho = st.multiselect("Filtrar por Derecho", df_historico["DERECHO"].unique())
             with c_fil3:
-                sel_anio = st.selectbox(T["meta_year"], anios_disponibles, index=idx_anio_def)
-
-            # --- Filtrado estricto para Pie Charts (Snapshot) ---
-            df_snapshot = df_historico[
-                (df_historico["PAIS_NOMBRE"] == sel_pais) &
-                (df_historico["DERECHO"] == sel_derecho) &
-                (df_historico["AÑO"] == sel_anio)
-            ]
-
-            # --- CÁLCULOS DE PROGRESO (Sobre df_snapshot) ---
-            indicadores_cargados_total = df_snapshot["REF_INDICADOR"].nunique() if not df_snapshot.empty else 0
+                df_historico["AÑO"] = df_historico["AÑO"].astype(str)
+                filtro_anio = st.multiselect("Filtrar por Año", sorted(df_historico["AÑO"].unique()))
+            
+            # --- FILTRADO DATOS ---
+            df_show = df_historico.copy()
+            if filtro_pais:
+                df_show = df_show[df_show["UID"].astype(str).str.split("-").str[0].isin(filtro_pais)]
+            if filtro_derecho:
+                df_show = df_show[df_show["DERECHO"].isin(filtro_derecho)]
+            if filtro_anio:
+                df_show = df_show[df_show["AÑO"].isin(filtro_anio)]
+            
+            # --- CÁLCULOS DE PROGRESO ---
+            indicadores_cargados_total = df_show["REF_INDICADOR"].nunique() if not df_show.empty else 0
             
             cargados_cat = {"Estructurales": 0, "Procesos": 0, "Resultados": 0}
-            if not df_snapshot.empty and "CATEGORÍA" in df_snapshot.columns:
-                for cat in df_snapshot["CATEGORÍA"].unique():
+            if not df_show.empty and "CATEGORÍA" in df_show.columns:
+                for cat in df_show["CATEGORÍA"].unique():
                     cat_str = str(cat).strip()
-                    count = df_snapshot[df_snapshot["CATEGORÍA"] == cat]["REF_INDICADOR"].nunique()
+                    count = df_show[df_show["CATEGORÍA"] == cat]["REF_INDICADOR"].nunique()
                     if "Estructural" in cat_str: cargados_cat["Estructurales"] += count
                     elif "Proceso" in cat_str: cargados_cat["Procesos"] += count
                     elif "Resultado" in cat_str: cargados_cat["Resultados"] += count
 
-            # Metas (Basadas en el catálogo completo para ese derecho)
-            meta_total_calculada, metas_por_categoria = calcular_metas_catalogo([sel_derecho])
-
-            # --- VISUALIZACIÓN PIE CHARTS ---
+            # Cálculo de METAS
+            meta_total_calculada, metas_por_categoria = calcular_metas_catalogo(filtro_derecho if filtro_derecho else None)
+            
+            # --- VISUALIZACIÓN ---
+            st.divider()
+            
             text_color_charts = "#F2F2F2" if dark_mode else "#011936"
             color_missing = "#ff4444"
             
+            # Gráfico Principal
             col_main_chart = st.columns([1, 2, 1])
             with col_main_chart[1]:
-                st.markdown(f"<h3 style='text-align: center; color:{text_color_charts}'>Progreso {sel_anio}</h3>", unsafe_allow_html=True)
+                st.markdown(f"<h3 style='text-align: center; color:{text_color_charts}'>Progreso Global</h3>", unsafe_allow_html=True)
                 fig_main = crear_donut(
                     indicadores_cargados_total, 
                     meta_total_calculada, 
@@ -591,6 +572,7 @@ elif modo_app == T["nav_view"]:
                 )
                 st.plotly_chart(fig_main, use_container_width=True)
 
+            # Gráficos Secundarios
             c1, c2, c3 = st.columns(3)
             with c1:
                 st.markdown(f"<h5 style='text-align: center; color:{text_color_charts}'>Estructurales</h5>", unsafe_allow_html=True)
@@ -605,102 +587,13 @@ elif modo_app == T["nav_view"]:
                 fig_res = crear_donut(cargados_cat["Resultados"], metas_por_categoria["Resultados"], "#aa66cc", color_missing, f"{cargados_cat['Resultados']}/{metas_por_categoria['Resultados']}", text_color_charts)
                 st.plotly_chart(fig_res, use_container_width=True)
 
-            # ---------------------------------------------------------
-            # SECCIÓN 2: EVOLUCIÓN HISTÓRICA (NUEVA)
-            # ---------------------------------------------------------
-            st.markdown("---")
-            st.subheader(f"📈 Análisis Evolutivo: {sel_derecho} en {sel_pais}")
-            
-            # --- Filtros Secundarios ---
-            col_ev1, col_ev2 = st.columns([2, 1])
-            
-            with col_ev1:
-                # 1. Obtener lista de indicadores del CATÁLOGO (no solo DB)
-                lista_indicadores_catalogo = []
-                if sel_derecho in CATALOGO_INDICADORES:
-                    for agr in CATALOGO_INDICADORES[sel_derecho].values(): # Agrupamientos
-                        for cat in agr.values(): # Categorías
-                            for ind in cat: # Lista de tuplas [Ref, Nombre]
-                                # Guardamos solo el nombre para el dropdown
-                                lista_indicadores_catalogo.append(ind[1])
-                
-                # Eliminar duplicados y ordenar
-                lista_indicadores_catalogo = sorted(list(set(lista_indicadores_catalogo)))
-                
-                sel_indicador_evol = st.selectbox(
-                    "Seleccionar Indicador para Comparar", 
-                    lista_indicadores_catalogo if lista_indicadores_catalogo else ["No hay indicadores definidos"]
-                )
-
-            with col_ev2:
-                # 2. Selección Múltiple de Años (Ordenados cronológicamente)
-                anios_cronologicos = sorted(anios_disponibles) # Ascendente para la lista
-                sel_anios_evol = st.multiselect(
-                    "Años a Comparar", 
-                    anios_cronologicos,
-                    default=anios_cronologicos # Por defecto selecciona todos para ver la historia completa
-                )
-
-            # --- Gráfico de Barras ---
-            if sel_indicador_evol and sel_anios_evol:
-                # Filtrar DB Histórica
-                df_evol = df_historico[
-                    (df_historico["PAIS_NOMBRE"] == sel_pais) & 
-                    (df_historico["DERECHO"] == sel_derecho) &
-                    (df_historico["INDICADOR"] == sel_indicador_evol) &
-                    (df_historico["AÑO"].isin(sel_anios_evol))
-                ].copy() # Copy para evitar warnings
-
-                if not df_evol.empty:
-                    # Limpieza de valores para el gráfico (convertir "80%" o strings a números)
-                    def limpiar_valor(v):
-                        try:
-                            v_str = str(v).replace('%', '').replace(',', '.').strip()
-                            return float(v_str)
-                        except:
-                            return 0 # Si no es numérico, 0
-                    
-                    df_evol["VALOR_NUM"] = df_evol["VALOR"].apply(limpiar_valor)
-                    df_evol = df_evol.sort_values("AÑO") # Orden Cronológico Eje X
-
-                    # Crear Gráfico de Barras
-                    fig_bar = go.Figure(
-                        data=[go.Bar(
-                            x=df_evol['AÑO'], 
-                            y=df_evol['VALOR_NUM'],
-                            text=df_evol['VALOR'], # Mostrar el valor original en la barra
-                            textposition='auto',
-                            marker_color='#33b5e5'
-                        )]
-                    )
-                    
-                    fig_bar.update_layout(
-                        title=f"Evolución: {sel_indicador_evol}",
-                        xaxis_title="Año del Informe",
-                        yaxis_title="Valor Registrado",
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        font=dict(color=text_color_charts)
-                    )
-                    st.plotly_chart(fig_bar, use_container_width=True)
-                else:
-                    st.info(f"No hay registros de datos para el indicador '{sel_indicador_evol}' en los años seleccionados.")
-            
-            # ---------------------------------------------------------
-            # SECCIÓN 3: DETALLE DE REGISTROS (TABLA)
-            # ---------------------------------------------------------
             st.divider()
-            with st.expander(T["dash_expander_table"], expanded=True):
-                # Mostramos datos filtrados por el CONTEXTO (País y Derecho) pero TODOS los años
-                # para que sirva de referencia completa.
-                df_table = df_historico[
-                    (df_historico["PAIS_NOMBRE"] == sel_pais) &
-                    (df_historico["DERECHO"] == sel_derecho)
-                ]
-                st.dataframe(df_table, use_container_width=True, height=400)
-
+            with st.expander(T["dash_expander_table"]):
+                st.dataframe(df_show, use_container_width=True, height=600)
         else:
-            st.warning("La base de datos está vacía.")
+            st.warning("La hoja de cálculo está vacía o no se pudo leer.")
             
     except Exception as e:
-        st.error(f"Error en el Dashboard: {e}")
+        st.error(f"Error al conectar con Google Sheets: {e}")
+
+
