@@ -473,55 +473,66 @@ elif modo_app == T["nav_view"]:
     try:
         df_historico = cargar_datos_sheet()
         
+        # --- FILTROS ---
         c_fil1, c_fil2, c_fil3 = st.columns(3)
         list_paises = sorted(list(MAPA_PAISES.keys()))
         list_derechos = sorted(list(MAPA_DERECHOS.keys()))
+        
+        # Default: Año más reciente encontrado
         max_anio = 2024 
         if not df_historico.empty and "AÑO" in df_historico.columns:
             try: max_anio = int(df_historico["AÑO"].max())
             except: pass
         
         with c_fil1:
-            # V47: Sin "TODOS"
+            # Sin "TODOS"
             filtro_pais = st.selectbox("Filtrar por País", list_paises, index=0)
         
         with c_fil2:
-            # V47: "Todos"
+            # "Todos" (Title Case)
             opciones_derecho = ["Todos"] + list_derechos
             filtro_derecho = st.selectbox("Filtrar por Derecho", opciones_derecho, index=0)
             
         with c_fil3:
-            # V47: Sin "TODOS", selección completa de años
+            # Sin "TODOS" en año para KPI (para comparar vs meta)
             opciones_anio = [str(x) for x in range(2000, 2031)]
-            try:
-                idx_anio = opciones_anio.index(str(max_anio))
-            except:
-                idx_anio = 0
+            try: idx_anio = opciones_anio.index(str(max_anio))
+            except: idx_anio = 0
             filtro_anio = st.selectbox("Filtrar por Año (Dashboard)", opciones_anio, index=idx_anio)
         
-        # --- LÓGICA DE FILTRADO ---
+        # --- LÓGICA DE FILTRADO (KPI & DONUTS) ---
+        # df_show_kpi = Filtrado por País, Derecho Y AÑO
+        # df_show_context = Filtrado SOLO por País y Derecho (ignora año para comparativa)
+        
         if not df_historico.empty:
-            df_show = df_historico.copy()
-            # 1. País (Siempre hay uno seleccionado)
+            # Paso 1: Base común (Filtro País)
+            df_base = df_historico.copy()
             if filtro_pais in MAPA_PAISES:
                 code_pais = MAPA_PAISES[filtro_pais]
-                df_show = df_show[df_show["UID"].astype(str).str.startswith(code_pais)]
+                df_base = df_base[df_base["UID"].astype(str).str.startswith(code_pais)]
             
-            # 2. Derecho (Filtra si != Todos)
+            # Paso 2: Filtro Derecho (Común)
             if filtro_derecho != "Todos":
-                df_show = df_show[df_show["DERECHO"] == filtro_derecho]
+                df_base = df_base[df_base["DERECHO"] == filtro_derecho]
                 
-            # 3. Año (Siempre hay uno seleccionado)
-            df_show = df_show[df_show["AÑO"].astype(str) == filtro_anio]
+            # df_show_context (Para abajo: Análisis Comparativo) -> Tiene TODOS los años de ese país/derecho
+            df_show_context = df_base.copy()
+            
+            # df_show_kpi (Para arriba: Donuts) -> Tiene SOLO el año seleccionado
+            df_show_kpi = df_base[df_base["AÑO"].astype(str) == filtro_anio]
+            
         else:
-            df_show = pd.DataFrame()
+            df_show_kpi = pd.DataFrame()
+            df_show_context = pd.DataFrame()
 
-        indicadores_cargados = df_show["REF_INDICADOR"].nunique() if not df_show.empty else 0
+        # --- KPI DONUTS (Usan df_show_kpi) ---
+        indicadores_cargados = df_show_kpi["REF_INDICADOR"].nunique() if not df_show_kpi.empty else 0
+        
         cargados_cat = {"Estructurales": 0, "Procesos": 0, "Resultados": 0}
-        if not df_show.empty and "CATEGORÍA" in df_show.columns:
-            for cat in df_show["CATEGORÍA"].unique():
+        if not df_show_kpi.empty and "CATEGORÍA" in df_show_kpi.columns:
+            for cat in df_show_kpi["CATEGORÍA"].unique():
                 cat_str = str(cat).strip()
-                count = df_show[df_show["CATEGORÍA"] == cat]["REF_INDICADOR"].nunique()
+                count = df_show_kpi[df_show_kpi["CATEGORÍA"] == cat]["REF_INDICADOR"].nunique()
                 if "Estructural" in cat_str: cargados_cat["Estructurales"] += count
                 elif "Proceso" in cat_str: cargados_cat["Procesos"] += count
                 elif "Resultado" in cat_str: cargados_cat["Resultados"] += count
@@ -534,7 +545,7 @@ elif modo_app == T["nav_view"]:
         
         col_main = st.columns([1, 2, 1])
         with col_main[1]:
-            st.markdown(f"<h3 style='text-align:center; color:{text_color}'>Progreso Global</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='text-align:center; color:{text_color}'>Progreso Global ({filtro_anio})</h3>", unsafe_allow_html=True)
             st.plotly_chart(crear_donut(indicadores_cargados, meta_total, "#00C851", color_missing, f"{indicadores_cargados}/{meta_total}", text_color), use_container_width=True)
 
         c1, c2, c3 = st.columns(3)
@@ -550,30 +561,35 @@ elif modo_app == T["nav_view"]:
 
         st.divider()
 
+        # --- SECCIÓN 2: ANÁLISIS COMPARATIVO (Usa df_show_context - Todos los años) ---
         st.markdown(f"<h3 style='color:{text_color}'>{T['dash_chart_bar']}</h3>", unsafe_allow_html=True)
         
-        if not df_show.empty:
-            indicadores_disponibles = sorted(df_show["INDICADOR"].unique())
-        else:
-            indicadores_disponibles = []
+        indicadores_disponibles = []
+        if not df_show_context.empty:
+            indicadores_disponibles = sorted(df_show_context["INDICADOR"].unique())
             
         c_ana1, c_ana2 = st.columns([2, 1])
         with c_ana1:
             sel_ind_comp = st.selectbox("Seleccione Indicador para Comparar", indicadores_disponibles)
         with c_ana2:
-            # Lista completa de años para el análisis comparativo (V48)
+            # Lista completa de años posible (V48)
             full_years_list = [str(x) for x in range(2000, 2031)]
             
-            # Pre-seleccionar los años que tienen datos para ese indicador
+            # Pre-seleccionar años con datos para ese indicador
             anios_con_datos = []
-            if sel_ind_comp and not df_show.empty:
-                anios_con_datos = sorted(df_show[df_show["INDICADOR"] == sel_ind_comp]["AÑO"].unique().astype(str))
+            if sel_ind_comp and not df_show_context.empty:
+                anios_con_datos = sorted(df_show_context[df_show_context["INDICADOR"] == sel_ind_comp]["AÑO"].unique().astype(str))
             
             sel_anios_comp = st.multiselect("Seleccione Años", full_years_list, default=anios_con_datos)
 
-        if sel_ind_comp and sel_anios_comp and not df_show.empty:
-            df_chart = df_show[(df_show["INDICADOR"] == sel_ind_comp) & (df_show["AÑO"].astype(str).isin(sel_anios_comp))].copy()
+        if sel_ind_comp and sel_anios_comp and not df_show_context.empty:
+            df_chart = df_show_context[
+                (df_show_context["INDICADOR"] == sel_ind_comp) & 
+                (df_show_context["AÑO"].astype(str).isin(sel_anios_comp))
+            ].copy()
+            
             df_chart.sort_values("AÑO", ascending=True, inplace=True)
+            
             fig_bar = px.bar(
                 df_chart,
                 y="AÑO", x="VALOR", orientation='h',
@@ -591,7 +607,8 @@ elif modo_app == T["nav_view"]:
 
         st.divider()
         with st.expander(T["dash_expander_table"]):
-            st.dataframe(df_show, use_container_width=True, height=600)
+            # Mostramos la tabla del contexto seleccionado (País/Derecho) para que vean todo
+            st.dataframe(df_show_context, use_container_width=True, height=600)
             
     except Exception as e:
         st.error(f"Error en el Dashboard: {e}")
