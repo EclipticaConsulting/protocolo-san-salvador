@@ -36,12 +36,15 @@ def get_base64_image(image_path):
 # --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="Protocolo de San Salvador - Eclíptica", page_icon="🌎", layout="wide")
 
-# --- 2. TEXTOS ---
+# --- 2. TEXTOS (DICCIONARIO CORREGIDO Y COMPLETO) ---
 TEXTOS = {
     "ES": {
         "title": "Protocolo de San Salvador", 
         "nav_load": "Gestión de Registros",
         "nav_view": "Dashboard",
+        "meta_country": "País del Informe (*)",
+        "meta_right": "Derecho Asignado (*)",
+        "meta_year": "Año del Informe (*)",
         "val_header": "2. Validación y Carga",
         "manual_header": "Registro Manual de Datos",
         "manual_btn": "Agregar Registro",
@@ -49,7 +52,7 @@ TEXTOS = {
         "btn_discard": "Descartar Cambios",
         "view_title": "Centro de Monitoreo",
         "view_refresh": "Actualizar Tablero",
-        "dash_chart_bar": "Análisis Comparativo (Evolutivo)",
+        "dash_chart_bar": "Análisis Comparativo",
         "dash_expander_table": "Detalle de Registros",
         "upload_header": "1. Conexión de Documentos",
         "upload_label": "Cargar Archivo PDF",
@@ -59,12 +62,16 @@ TEXTOS = {
         "btn_extract": "Iniciar Extracción Automática",
         "processing": "Procesando página {current} de {total}...",
         "quota_switch": "Cuota excedida en {model}. Cambiando...",
-        "toast_save": "Datos guardados correctamente."
+        "toast_save": "Datos guardados correctamente.",
+        "range_label": "Rango de Lectura"
     },
     "EN": {
         "title": "San Salvador Protocol", 
         "nav_load": "Record Management",
         "nav_view": "Control Dashboard",
+        "meta_country": "Report Country (*)",
+        "meta_right": "Assigned Right (*)",
+        "meta_year": "Report Year (*)",
         "val_header": "2. Validation & Upload",
         "manual_header": "Manual Data Entry",
         "manual_btn": "Add Record",
@@ -82,7 +89,8 @@ TEXTOS = {
         "btn_extract": "Start Auto-Extraction",
         "processing": "Processing page {current} of {total}...",
         "quota_switch": "Quota exceeded on {model}. Switching...",
-        "toast_save": "Data saved successfully."
+        "toast_save": "Data saved successfully.",
+        "range_label": "Reading Range"
     }
 }
 
@@ -397,12 +405,12 @@ if modo_app == T["nav_load"]:
         if "df_ia" not in st.session_state: st.session_state.df_ia = pd.DataFrame()
         with st.expander(T["manual_header"], expanded=True):
             if not der_sel:
-                st.warning("⚠️ Seleccione un 'Derecho' arriba.")
+                st.warning("⚠️ Selecciona un 'Derecho Asignado' arriba para ver las listas.")
             else:
                 if der_sel in CATALOGO_INDICADORES:
                     agrupamientos_disp = list(CATALOGO_INDICADORES[der_sel].keys())
                 else:
-                    agrupamientos_disp = ["No hay datos"]
+                    agrupamientos_disp = ["No hay datos cargados"]
                 m_agr = st.selectbox("Agrupamiento", agrupamientos_disp, key="sel_agr")
                 categorias_disp = []
                 if der_sel in CATALOGO_INDICADORES and m_agr in CATALOGO_INDICADORES[der_sel]:
@@ -412,13 +420,13 @@ if modo_app == T["nav_load"]:
                 if der_sel in CATALOGO_INDICADORES and m_agr in CATALOGO_INDICADORES[der_sel] and m_cat in CATALOGO_INDICADORES[der_sel][m_agr]:
                     indicadores_obj = CATALOGO_INDICADORES[der_sel][m_agr][m_cat]
                 opciones_ind = [f"[{x[0]}] {x[1]}" for x in indicadores_obj]
-                seleccion_ind = st.selectbox("Indicador", opciones_ind if opciones_ind else ["Otro"], key="sel_ind")
+                seleccion_ind = st.selectbox("Indicador", opciones_ind if opciones_ind else ["Otro / Personalizado"], key="sel_ind")
                 if seleccion_ind and "[" in seleccion_ind:
                     ref_auto = seleccion_ind.split("]")[0].replace("[", "")
                     nombre_ind = seleccion_ind.split("] ")[1]
                 else:
                     ref_auto = "000"; nombre_ind = seleccion_ind
-                st.info(f"📌 Referencia: **{ref_auto}**")
+                st.info(f"📌 Referencia Asignada: **{ref_auto}**")
                 st.markdown("---")
                 c1, c2 = st.columns(2)
                 with c1:
@@ -466,26 +474,17 @@ elif modo_app == T["nav_view"]:
         
         # --- FILTROS (V43: Defaults inteligentes) ---
         c_fil1, c_fil2, c_fil3 = st.columns(3)
-        
-        # Listas completas ordenadas
         list_paises = sorted(list(MAPA_PAISES.keys()))
         list_derechos = sorted(list(MAPA_DERECHOS.keys()))
-        
-        # Default País: Primero A-Z
         idx_pais = 0 
-        
-        # Default Derecho: Primero A-Z
         idx_derecho = 0
-        
-        # Default Año: Último registrado (Max)
-        max_anio = 2024 # Fallback
+        max_anio = 2024 
         if not df_historico.empty and "AÑO" in df_historico.columns:
             try: max_anio = int(df_historico["AÑO"].max())
             except: pass
         
         with c_fil1:
             opciones_pais = ["TODOS"] + list_paises
-            # Ajustamos default para que sea el primero de A-Z (index 1 porque 0 es TODOS)
             filtro_pais = st.multiselect("Filtrar por País", opciones_pais, default=[list_paises[0]])
         
         with c_fil2:
@@ -493,9 +492,7 @@ elif modo_app == T["nav_view"]:
             filtro_derecho = st.multiselect("Filtrar por Derecho", opciones_derecho, default=[list_derechos[0]])
             
         with c_fil3:
-            # Filtro de Año SIN "TODOS", Default = Max Year
             opciones_anio = [str(x) for x in range(2000, 2031)]
-            # Pre-seleccionar el año más reciente
             default_anio = [str(max_anio)] if str(max_anio) in opciones_anio else []
             filtro_anio = st.multiselect("Filtrar por Año (Dashboard)", opciones_anio, default=default_anio)
         
@@ -551,10 +548,6 @@ elif modo_app == T["nav_view"]:
         # --- SECCIÓN 2: ANÁLISIS COMPARATIVO (BARRAS) ---
         st.markdown(f"<h3 style='color:{text_color}'>{T['dash_chart_bar']}</h3>", unsafe_allow_html=True)
         
-        # Filtros específicos para esta sección (para no mezclar con los de arriba)
-        # Usamos df_historico completo pero filtrado por País/Derecho seleccionados arriba para limitar las opciones
-        
-        # 1. Preparar lista de indicadores disponibles según filtros superiores
         if not df_show.empty:
             indicadores_disponibles = sorted(df_show["INDICADOR"].unique())
         else:
@@ -564,43 +557,24 @@ elif modo_app == T["nav_view"]:
         with c_ana1:
             sel_ind_comp = st.selectbox("Seleccione Indicador para Comparar", indicadores_disponibles)
         with c_ana2:
-            # Multiselect de años disponibles para ese indicador
             anios_disp_ind = []
             if sel_ind_comp and not df_show.empty:
                 anios_disp_ind = sorted(df_show[df_show["INDICADOR"] == sel_ind_comp]["AÑO"].unique().astype(str))
-            
             sel_anios_comp = st.multiselect("Seleccione Años", anios_disp_ind, default=anios_disp_ind)
 
-        # 2. Generar Gráfico
         if sel_ind_comp and sel_anios_comp and not df_show.empty:
-            df_chart = df_show[
-                (df_show["INDICADOR"] == sel_ind_comp) & 
-                (df_show["AÑO"].astype(str).isin(sel_anios_comp))
-            ].copy()
-            
-            # Asegurar orden cronológico
+            df_chart = df_show[(df_show["INDICADOR"] == sel_ind_comp) & (df_show["AÑO"].astype(str).isin(sel_anios_comp))].copy()
             df_chart.sort_values("AÑO", ascending=True, inplace=True)
-            
-            # Gráfico de Barras HORIZONTAL
-            # Y = Años (Categoría), X = Valor (Magnitud)
             fig_bar = px.bar(
                 df_chart,
-                y="AÑO", # Eje vertical: Años
-                x="VALOR", # Eje horizontal: Valor
-                orientation='h', # Barras horizontales
-                text="VALOR",
-                color="AÑO", # Color por año para distinguir
-                title=f"Evolución: {sel_ind_comp}"
+                y="AÑO", x="VALOR", orientation='h',
+                text="VALOR", color="AÑO", title=f"Evolución: {sel_ind_comp}"
             )
-            
             fig_bar.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color=text_color),
-                showlegend=False,
-                xaxis_title="Valor Registrado",
-                yaxis_title="Año del Informe",
-                yaxis=dict(type='category') # Tratar año como categoría para que no rellene huecos numéricos
+                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color=text_color), showlegend=False,
+                xaxis_title="Valor Registrado", yaxis_title="Año del Informe",
+                yaxis=dict(type='category')
             )
             st.plotly_chart(fig_bar, use_container_width=True)
         else:
