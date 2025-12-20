@@ -2,9 +2,6 @@ import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
-import google.generativeai as genai
-import PyPDF2
-import json
 import plotly.express as px
 import plotly.graph_objects as go
 import time
@@ -45,25 +42,15 @@ TEXTOS = {
         "meta_country": "País del Informe (*)",
         "meta_right": "Derecho Asignado (*)",
         "meta_year": "Año del Informe (*)",
-        "val_header": "2. Validación y Carga",
         "manual_header": "Registro Manual de Datos",
-        "manual_btn": "Agregar Registro",
+        "manual_btn": "Agregar a la Tabla",
         "btn_save": "Guardar en Base de Datos",
-        "btn_discard": "Descartar Cambios",
+        "btn_discard": "Limpiar Tabla",
         "view_title": "Centro de Monitoreo",
         "view_refresh": "Actualizar Tablero",
         "dash_chart_bar": "Análisis Comparativo",
         "dash_expander_table": "Detalle de Registros",
-        "upload_header": "1. Conexión de Documentos",
-        "upload_label": "Cargar Archivo PDF",
-        "api_label": "Clave de API (Gemini)",
-        "start_page": "Página Inicial",
-        "end_page": "Página Final",
-        "btn_extract": "Iniciar Extracción Automática",
-        "processing": "Procesando página {current} de {total}...",
-        "quota_switch": "Cuota excedida en {model}. Cambiando...",
-        "toast_save": "Datos guardados correctamente.",
-        "range_label": "Rango de Lectura"
+        "toast_save": "Datos guardados correctamente."
     },
     "EN": {
         "title": "San Salvador Protocol", 
@@ -72,25 +59,15 @@ TEXTOS = {
         "meta_country": "Report Country (*)",
         "meta_right": "Assigned Right (*)",
         "meta_year": "Report Year (*)",
-        "val_header": "2. Validation & Upload",
         "manual_header": "Manual Data Entry",
-        "manual_btn": "Add Record",
+        "manual_btn": "Add to Table",
         "btn_save": "Save to Database",
-        "btn_discard": "Discard Changes",
+        "btn_discard": "Clear Table",
         "view_title": "Monitoring Center",
         "view_refresh": "Refresh Dashboard",
         "dash_chart_bar": "Comparative Analysis",
         "dash_expander_table": "Record Details",
-        "upload_header": "1. Document Connection",
-        "upload_label": "Upload PDF File",
-        "api_label": "API Key (Gemini)",
-        "start_page": "Start Page",
-        "end_page": "End Page",
-        "btn_extract": "Start Auto-Extraction",
-        "processing": "Processing page {current} of {total}...",
-        "quota_switch": "Quota exceeded on {model}. Switching...",
-        "toast_save": "Data saved successfully.",
-        "range_label": "Reading Range"
+        "toast_save": "Data saved successfully."
     }
 }
 
@@ -134,31 +111,6 @@ def cargar_datos_sheet():
         data = ws.get_all_records()
         return pd.DataFrame(data)
     return pd.DataFrame()
-
-def procesar_pagina_individual(texto, api_key, anio, T):
-    genai.configure(api_key=api_key)
-    modelos = ['models/gemini-2.0-flash-lite', 'models/gemini-flash-latest', 'models/gemini-2.0-flash']
-    prompt = f"""
-    Actúa como experto en el Protocolo de San Salvador. Extrae TODOS los indicadores.
-    CONTEXTO: Año informe: {anio}.
-    INSTRUCCIONES:
-    1. REF_INDICADOR: "0" (siempre).
-    2. AGRUPAMIENTO: Intenta clasificar en: Recepción, Contexto, Capacidades, Igualdad, Info, Justicia.
-    TEXTO: {texto}
-    SALIDA JSON: [{{ "CATEGORÍA": "Estructural|Proceso|Resultado", "AGRUPAMIENTO": "Categoría", "REF_INDICADOR": "0", "INDICADOR": "Texto del indicador", "DESAGREGACIÓN": "...", "UNIDAD": "...", "AÑO": "{anio}", "VALOR": "...", "FUENTE": "...", "ESTADO_DATO": "Oficial" }}]
-    """
-    for m in modelos:
-        try:
-            time.sleep(1)
-            model = genai.GenerativeModel(m)
-            res = model.generate_content(prompt)
-            data = json.loads(res.text.replace("```json","").replace("```","").strip())
-            return pd.DataFrame(data), "OK"
-        except Exception as e:
-            if "429" in str(e) or "Quota" in str(e):
-                st.toast(T["quota_switch"].format(model=m), icon="⚠️")
-                continue
-    return pd.DataFrame(), "ERROR"
 
 def calcular_metas_catalogo(derecho_filtro=None):
     meta_total = 0
@@ -364,105 +316,69 @@ if modo_app == T["nav_load"]:
     
     st.markdown("---")
     
-    col_izq, col_der = st.columns([1, 1.5], gap="large")
-    with col_izq:
-        st.subheader(T["upload_header"])
-        uploaded_file = st.file_uploader(T["upload_label"], type="pdf")
-        api_key = st.text_input(T["api_label"], type="password")
-        if uploaded_file and api_key:
-            reader = PyPDF2.PdfReader(uploaded_file)
-            num_pages = len(reader.pages)
-            st.info(f"📄 {num_pages} págs.")
-            c1, c2 = st.columns(2)
-            with c1: start = st.number_input(T["start_page"], 1, num_pages, 1)
-            with c2: end = st.number_input(T["end_page"], start, num_pages, min(start+4, num_pages))
-            if st.button(T["btn_extract"], type="primary"):
-                if not pais_sel or not der_sel or not anio_sel:
-                    st.error(T["err_missing_meta"])
-                else:
-                    df_acum = pd.DataFrame()
-                    prog = st.progress(0)
-                    status = st.empty()
-                    for i in range(start-1, end):
-                        try: txt = reader.pages[i].extract_text()
-                        except: txt = ""
-                        status.text(T["processing"].format(current=i+1, total=end))
-                        df_pag, st_code = procesar_pagina_individual(txt, api_key, anio_sel, T)
-                        if st_code == "OK" and not df_pag.empty:
-                            df_pag["DERECHO"] = der_sel
-                            df_acum = pd.concat([df_acum, df_pag], ignore_index=True)
-                        prog.progress((i - start + 2)/(end - start + 1))
-                    prog.empty(); status.empty()
-                    if not df_acum.empty:
-                        base_count = 1
-                        if "df_ia" in st.session_state and not st.session_state.df_ia.empty:
-                            base_count = len(st.session_state.df_ia) + 1
-                        df_acum["REF_INDICADOR"] = [f"{x:03d}" for x in range(base_count, base_count+len(df_acum))]
-                        if "df_ia" not in st.session_state: st.session_state.df_ia = pd.DataFrame()
-                        st.session_state.df_ia = pd.concat([st.session_state.df_ia, df_acum], ignore_index=True)
-
-    with col_der:
-        st.subheader(T["val_header"])
-        if "df_ia" not in st.session_state: st.session_state.df_ia = pd.DataFrame()
-        with st.expander(T["manual_header"], expanded=True):
-            if not der_sel:
-                st.warning("⚠️ Selecciona un 'Derecho Asignado' arriba para ver las listas.")
+    if "df_buffer" not in st.session_state: st.session_state.df_buffer = pd.DataFrame()
+    
+    with st.expander(T["manual_header"], expanded=True):
+        if not der_sel:
+            st.warning("⚠️ Selecciona un 'Derecho Asignado' arriba para ver las listas.")
+        else:
+            if der_sel in CATALOGO_INDICADORES:
+                agrupamientos_disp = list(CATALOGO_INDICADORES[der_sel].keys())
             else:
-                if der_sel in CATALOGO_INDICADORES:
-                    agrupamientos_disp = list(CATALOGO_INDICADORES[der_sel].keys())
+                agrupamientos_disp = ["No hay datos cargados"]
+            m_agr = st.selectbox("Agrupamiento", agrupamientos_disp, key="sel_agr")
+            categorias_disp = []
+            if der_sel in CATALOGO_INDICADORES and m_agr in CATALOGO_INDICADORES[der_sel]:
+                categorias_disp = list(CATALOGO_INDICADORES[der_sel][m_agr].keys())
+            m_cat = st.selectbox("Categoría", categorias_disp if categorias_disp else ["Estructural", "Proceso", "Resultado"], key="sel_cat")
+            indicadores_obj = []
+            if der_sel in CATALOGO_INDICADORES and m_agr in CATALOGO_INDICADORES[der_sel] and m_cat in CATALOGO_INDICADORES[der_sel][m_agr]:
+                indicadores_obj = CATALOGO_INDICADORES[der_sel][m_agr][m_cat]
+            opciones_ind = [f"[{x[0]}] {x[1]}" for x in indicadores_obj]
+            seleccion_ind = st.selectbox("Indicador", opciones_ind if opciones_ind else ["Otro / Personalizado"], key="sel_ind")
+            if seleccion_ind and "[" in seleccion_ind:
+                ref_auto = seleccion_ind.split("]")[0].replace("[", "")
+                nombre_ind = seleccion_ind.split("] ")[1]
+            else:
+                ref_auto = "000"; nombre_ind = seleccion_ind
+            st.info(f"📌 Referencia Asignada: **{ref_auto}**")
+            st.markdown("---")
+            c1, c2 = st.columns(2)
+            with c1:
+                m_des = st.selectbox("Desagregación", LISTA_DESAGREGACION, key="sel_des")
+                m_uni = st.selectbox("Unidad", LISTA_UNIDADES, key="sel_uni")
+            with c2:
+                m_val = st.text_input("Valor", key="input_val")
+                m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue")
+            if st.button(T["manual_btn"], type="primary", use_container_width=True):
+                if not pais_sel or not der_sel or not anio_sel:
+                    st.error("⚠️ Falta seleccionar País, Derecho o Año.")
                 else:
-                    agrupamientos_disp = ["No hay datos cargados"]
-                m_agr = st.selectbox("Agrupamiento", agrupamientos_disp, key="sel_agr")
-                categorias_disp = []
-                if der_sel in CATALOGO_INDICADORES and m_agr in CATALOGO_INDICADORES[der_sel]:
-                    categorias_disp = list(CATALOGO_INDICADORES[der_sel][m_agr].keys())
-                m_cat = st.selectbox("Categoría", categorias_disp if categorias_disp else ["Estructural", "Proceso", "Resultado"], key="sel_cat")
-                indicadores_obj = []
-                if der_sel in CATALOGO_INDICADORES and m_agr in CATALOGO_INDICADORES[der_sel] and m_cat in CATALOGO_INDICADORES[der_sel][m_agr]:
-                    indicadores_obj = CATALOGO_INDICADORES[der_sel][m_agr][m_cat]
-                opciones_ind = [f"[{x[0]}] {x[1]}" for x in indicadores_obj]
-                seleccion_ind = st.selectbox("Indicador", opciones_ind if opciones_ind else ["Otro / Personalizado"], key="sel_ind")
-                if seleccion_ind and "[" in seleccion_ind:
-                    ref_auto = seleccion_ind.split("]")[0].replace("[", "")
-                    nombre_ind = seleccion_ind.split("] ")[1]
-                else:
-                    ref_auto = "000"; nombre_ind = seleccion_ind
-                st.info(f"📌 Referencia Asignada: **{ref_auto}**")
-                st.markdown("---")
-                c1, c2 = st.columns(2)
-                with c1:
-                    m_des = st.selectbox("Desagregación", LISTA_DESAGREGACION, key="sel_des")
-                    m_uni = st.selectbox("Unidad", LISTA_UNIDADES, key="sel_uni")
-                with c2:
-                    m_val = st.text_input("Valor", key="input_val")
-                    m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue")
-                if st.button(T["manual_btn"], type="primary", use_container_width=True):
-                    if not pais_sel or not der_sel or not anio_sel:
-                        st.error(T["err_missing_meta"])
-                    else:
-                        with st.spinner("Guardando..."):
-                             new_row = {"DERECHO":der_sel, "CATEGORÍA":m_cat, "AGRUPAMIENTO":m_agr, "REF_INDICADOR":ref_auto, "INDICADOR":nombre_ind, "DESAGREGACIÓN":m_des, "UNIDAD":m_uni, "AÑO":anio_sel, "VALOR":m_val, "FUENTE":m_fue, "ESTADO_DATO":"Manual"}
-                             st.session_state.df_ia = pd.concat([st.session_state.df_ia, pd.DataFrame([new_row])], ignore_index=True)
-                             time.sleep(0.5)
-                             st.rerun()
+                    with st.spinner("Agregando..."):
+                            new_row = {"DERECHO":der_sel, "CATEGORÍA":m_cat, "AGRUPAMIENTO":m_agr, "REF_INDICADOR":ref_auto, "INDICADOR":nombre_ind, "DESAGREGACIÓN":m_des, "UNIDAD":m_uni, "AÑO":anio_sel, "VALOR":m_val, "FUENTE":m_fue, "ESTADO_DATO":"Manual"}
+                            st.session_state.df_buffer = pd.concat([st.session_state.df_buffer, pd.DataFrame([new_row])], ignore_index=True)
+                            time.sleep(0.1)
+                            st.rerun()
 
-        if not st.session_state.df_ia.empty:
-            df_work = st.session_state.df_ia.copy()
-            df_work["UID"] = df_work.apply(lambda r: generar_uid(r, pais_sel, anio_sel, der_sel), axis=1)
-            cols = ["UID", "DERECHO", "CATEGORÍA", "INDICADOR", "VALOR", "AÑO", "AGRUPAMIENTO", "REF_INDICADOR"]
-            for c in cols: 
-                if c not in df_work.columns: df_work[c]=""
-            df_fin = st.data_editor(df_work[cols], num_rows="dynamic", height=400, use_container_width=True)
-            cb1, cb2 = st.columns(2)
-            with cb1:
-                if st.button(T["btn_save"], type="secondary", use_container_width=True):
-                    try:
-                        guardar_en_sheet(df_fin)
-                        st.toast(T["toast_save"], icon="🎉"); st.balloons(); st.session_state.df_ia = pd.DataFrame(); st.rerun()
-                    except Exception as e: st.error(str(e))
-            with cb2:
-                if st.button(T["btn_discard"], use_container_width=True):
-                    st.session_state.df_ia = pd.DataFrame(); st.rerun()
+    if not st.session_state.df_buffer.empty:
+        df_work = st.session_state.df_buffer.copy()
+        df_work["UID"] = df_work.apply(lambda r: generar_uid(r, pais_sel, anio_sel, der_sel), axis=1)
+        cols = ["UID", "DERECHO", "CATEGORÍA", "INDICADOR", "VALOR", "AÑO", "AGRUPAMIENTO", "REF_INDICADOR"]
+        for c in cols: 
+            if c not in df_work.columns: df_work[c]=""
+        st.divider()
+        st.markdown("### Tabla de Datos (Pre-Carga)")
+        df_fin = st.data_editor(df_work[cols], num_rows="dynamic", height=400, use_container_width=True)
+        cb1, cb2 = st.columns(2)
+        with cb1:
+            if st.button(T["btn_save"], type="secondary", use_container_width=True):
+                try:
+                    guardar_en_sheet(df_fin)
+                    st.toast(T["toast_save"], icon="🎉"); st.balloons(); st.session_state.df_buffer = pd.DataFrame(); st.rerun()
+                except Exception as e: st.error(str(e))
+        with cb2:
+            if st.button(T["btn_discard"], use_container_width=True):
+                st.session_state.df_buffer = pd.DataFrame(); st.rerun()
 
 # --- MÓDULO 2: VISUALIZACIÓN ---
 elif modo_app == T["nav_view"]:
@@ -473,61 +389,42 @@ elif modo_app == T["nav_view"]:
     try:
         df_historico = cargar_datos_sheet()
         
-        # --- FILTROS ---
         c_fil1, c_fil2, c_fil3 = st.columns(3)
         list_paises = sorted(list(MAPA_PAISES.keys()))
         list_derechos = sorted(list(MAPA_DERECHOS.keys()))
-        
-        # Default: Año más reciente encontrado
         max_anio = 2024 
         if not df_historico.empty and "AÑO" in df_historico.columns:
             try: max_anio = int(df_historico["AÑO"].max())
             except: pass
         
         with c_fil1:
-            # Sin "TODOS"
             filtro_pais = st.selectbox("Filtrar por País", list_paises, index=0)
-        
         with c_fil2:
-            # "Todos" (Title Case)
             opciones_derecho = ["Todos"] + list_derechos
             filtro_derecho = st.selectbox("Filtrar por Derecho", opciones_derecho, index=0)
-            
         with c_fil3:
-            # Sin "TODOS" en año para KPI (para comparar vs meta)
             opciones_anio = [str(x) for x in range(2000, 2031)]
             try: idx_anio = opciones_anio.index(str(max_anio))
             except: idx_anio = 0
             filtro_anio = st.selectbox("Filtrar por Año (Dashboard)", opciones_anio, index=idx_anio)
         
         # --- LÓGICA DE FILTRADO (KPI & DONUTS) ---
-        # df_show_kpi = Filtrado por País, Derecho Y AÑO
-        # df_show_context = Filtrado SOLO por País y Derecho (ignora año para comparativa)
-        
         if not df_historico.empty:
-            # Paso 1: Base común (Filtro País)
             df_base = df_historico.copy()
             if filtro_pais in MAPA_PAISES:
                 code_pais = MAPA_PAISES[filtro_pais]
                 df_base = df_base[df_base["UID"].astype(str).str.startswith(code_pais)]
             
-            # Paso 2: Filtro Derecho (Común)
             if filtro_derecho != "Todos":
                 df_base = df_base[df_base["DERECHO"] == filtro_derecho]
                 
-            # df_show_context (Para abajo: Análisis Comparativo) -> Tiene TODOS los años de ese país/derecho
             df_show_context = df_base.copy()
-            
-            # df_show_kpi (Para arriba: Donuts) -> Tiene SOLO el año seleccionado
             df_show_kpi = df_base[df_base["AÑO"].astype(str) == filtro_anio]
-            
         else:
             df_show_kpi = pd.DataFrame()
             df_show_context = pd.DataFrame()
 
-        # --- KPI DONUTS (Usan df_show_kpi) ---
         indicadores_cargados = df_show_kpi["REF_INDICADOR"].nunique() if not df_show_kpi.empty else 0
-        
         cargados_cat = {"Estructurales": 0, "Procesos": 0, "Resultados": 0}
         if not df_show_kpi.empty and "CATEGORÍA" in df_show_kpi.columns:
             for cat in df_show_kpi["CATEGORÍA"].unique():
@@ -561,7 +458,7 @@ elif modo_app == T["nav_view"]:
 
         st.divider()
 
-        # --- SECCIÓN 2: ANÁLISIS COMPARATIVO (Usa df_show_context - Todos los años) ---
+        # --- SECCIÓN 2: ANÁLISIS COMPARATIVO ---
         st.markdown(f"<h3 style='color:{text_color}'>{T['dash_chart_bar']}</h3>", unsafe_allow_html=True)
         
         indicadores_disponibles = []
@@ -572,10 +469,7 @@ elif modo_app == T["nav_view"]:
         with c_ana1:
             sel_ind_comp = st.selectbox("Seleccione Indicador para Comparar", indicadores_disponibles)
         with c_ana2:
-            # Lista completa de años posible (V48)
             full_years_list = [str(x) for x in range(2000, 2031)]
-            
-            # Pre-seleccionar años con datos para ese indicador
             anios_con_datos = []
             if sel_ind_comp and not df_show_context.empty:
                 anios_con_datos = sorted(df_show_context[df_show_context["INDICADOR"] == sel_ind_comp]["AÑO"].unique().astype(str))
@@ -607,7 +501,6 @@ elif modo_app == T["nav_view"]:
 
         st.divider()
         with st.expander(T["dash_expander_table"]):
-            # Mostramos la tabla del contexto seleccionado (País/Derecho) para que vean todo
             st.dataframe(df_show_context, use_container_width=True, height=600)
             
     except Exception as e:
