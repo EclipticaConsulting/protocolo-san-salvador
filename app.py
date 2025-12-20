@@ -491,10 +491,9 @@ elif modo_app == T["nav_view"]:
             
             df_chart.sort_values("AÑO", ascending=True, inplace=True)
             
-            # --- V53: Truco para paleta discreta ---
+            # --- V54: Título LIMPIO (Sin 'Evolución:') ---
             df_chart["AÑO"] = df_chart["AÑO"].astype(str)
 
-            # PALETA ROJA (MODO CLARO) vs DEFAULT (OSCURO)
             if not dark_mode:
                 color_seq = ["#FFCDD2", "#EF9A9A", "#E57373", "#EF5350", "#F44336", "#E53935", "#D32F2F", "#C62828", "#B71C1C", "#880E4F"]
                 title_color_chart = "#011936" # Azul Oscuro (V53)
@@ -506,23 +505,22 @@ elif modo_app == T["nav_view"]:
                 df_chart,
                 y="AÑO", x="VALOR", orientation='h',
                 text="VALOR", color="AÑO", 
-                # Título en NEGRITA (HTML)
-                title=f"<b>Evolución: {sel_ind_comp}</b>",
+                # Título LIMPIO V54: Solo el nombre del indicador
+                title=f"<b>{sel_ind_comp}</b>",
                 color_discrete_sequence=color_seq
             )
             
-            # V53: Layout con Negritas en Ejes y Título Azul (Claro)
+            # V53: Layout con Negritas
             fig_bar.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color=text_color, family="Arial"), # Base font
-                title_font=dict(color=title_color_chart, size=20, family="Arial Black"), # Title specific
+                font=dict(color=text_color, family="Arial"), 
+                title_font=dict(color=title_color_chart, size=20, family="Arial Black"), 
                 showlegend=False,
                 xaxis_title="<b>Valor Registrado</b>", 
                 yaxis_title="<b>Año del Informe</b>",
-                yaxis=dict(type='category', tickfont=dict(family="Arial Black")), # Y Axis Bold
-                xaxis=dict(tickfont=dict(family="Arial Black")) # X Axis Bold
+                yaxis=dict(type='category', tickfont=dict(family="Arial Black")), 
+                xaxis=dict(tickfont=dict(family="Arial Black")) 
             )
-            # V53: Negritas dentro de las barras
             fig_bar.update_traces(textfont=dict(family="Arial Black", size=14))
             
             st.plotly_chart(fig_bar, use_container_width=True)
@@ -535,3 +533,4 @@ elif modo_app == T["nav_view"]:
             
     except Exception as e:
         st.error(f"Error en el Dashboard: {e}")
+
