@@ -484,12 +484,14 @@ elif modo_app == T["nav_view"]:
             
             df_chart.sort_values("AÑO", ascending=True, inplace=True)
             
-            # --- PALETA ROJA SOLO PARA MODO CLARO ---
+            # --- TRUCO: Convertir AÑO a string para obligar a usar escala discreta ---
+            df_chart["AÑO"] = df_chart["AÑO"].astype(str)
+
+            # PALETA ROJA (MODO CLARO) vs DEFAULT (OSCURO)
             if not dark_mode:
-                # Una secuencia de rojos bonitos (del claro al oscuro o viceversa)
                 color_seq = ["#FFCDD2", "#EF9A9A", "#E57373", "#EF5350", "#F44336", "#E53935", "#D32F2F", "#C62828", "#B71C1C", "#880E4F"]
             else:
-                color_seq = None # Default Plotly
+                color_seq = px.colors.qualitative.Plotly
 
             fig_bar = px.bar(
                 df_chart,
