@@ -140,9 +140,16 @@ def crear_donut(valor, meta, color_fill, color_empty, titulo_centro, text_color)
         sort=False,
         hoverinfo='label+value'
     )])
+    # V53: Negritas en el número central (Arial Black)
     fig.update_layout(
         showlegend=False,
-        annotations=[dict(text=titulo_centro, x=0.5, y=0.5, font_size=24, showarrow=False, font=dict(color=text_color, family="Arial", weight="bold"))],
+        annotations=[dict(
+            text=f"<b>{titulo_centro}</b>", 
+            x=0.5, y=0.5, 
+            font_size=22, 
+            showarrow=False, 
+            font=dict(color=text_color, family="Arial Black")
+        )],
         margin=dict(t=10, b=10, l=10, r=10),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
@@ -442,24 +449,24 @@ elif modo_app == T["nav_view"]:
         
         col_main = st.columns([1, 2, 1])
         with col_main[1]:
-            st.markdown(f"<h3 style='text-align:center; color:{text_color}'>Progreso Global ({filtro_anio})</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='text-align:center; color:{text_color}'><b>Progreso Global ({filtro_anio})</b></h3>", unsafe_allow_html=True)
             st.plotly_chart(crear_donut(indicadores_cargados, meta_total, "#00C851", color_missing, f"{indicadores_cargados}/{meta_total}", text_color), use_container_width=True)
 
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.markdown(f"<h5 style='text-align:center; color:{text_color}'>Estructurales</h5>", unsafe_allow_html=True)
+            st.markdown(f"<h5 style='text-align:center; color:{text_color}'><b>Estructurales</b></h5>", unsafe_allow_html=True)
             st.plotly_chart(crear_donut(cargados_cat["Estructurales"], metas_cat["Estructurales"], "#33b5e5", color_missing, f"{cargados_cat['Estructurales']}/{metas_cat['Estructurales']}", text_color), use_container_width=True)
         with c2:
-            st.markdown(f"<h5 style='text-align:center; color:{text_color}'>Procesos</h5>", unsafe_allow_html=True)
+            st.markdown(f"<h5 style='text-align:center; color:{text_color}'><b>Procesos</b></h5>", unsafe_allow_html=True)
             st.plotly_chart(crear_donut(cargados_cat["Procesos"], metas_cat["Procesos"], "#ffbb33", color_missing, f"{cargados_cat['Procesos']}/{metas_cat['Procesos']}", text_color), use_container_width=True)
         with c3:
-            st.markdown(f"<h5 style='text-align:center; color:{text_color}'>Resultados</h5>", unsafe_allow_html=True)
+            st.markdown(f"<h5 style='text-align:center; color:{text_color}'><b>Resultados</b></h5>", unsafe_allow_html=True)
             st.plotly_chart(crear_donut(cargados_cat["Resultados"], metas_cat["Resultados"], "#aa66cc", color_missing, f"{cargados_cat['Resultados']}/{metas_cat['Resultados']}", text_color), use_container_width=True)
 
         st.divider()
 
         # --- SECCIÓN 2: ANÁLISIS COMPARATIVO ---
-        st.markdown(f"<h3 style='color:{text_color}'>{T['dash_chart_bar']}</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='color:{text_color}'><b>{T['dash_chart_bar']}</b></h3>", unsafe_allow_html=True)
         
         indicadores_disponibles = []
         if not df_show_context.empty:
@@ -484,27 +491,40 @@ elif modo_app == T["nav_view"]:
             
             df_chart.sort_values("AÑO", ascending=True, inplace=True)
             
-            # --- TRUCO: Convertir AÑO a string para obligar a usar escala discreta ---
+            # --- V53: Truco para paleta discreta ---
             df_chart["AÑO"] = df_chart["AÑO"].astype(str)
 
             # PALETA ROJA (MODO CLARO) vs DEFAULT (OSCURO)
             if not dark_mode:
                 color_seq = ["#FFCDD2", "#EF9A9A", "#E57373", "#EF5350", "#F44336", "#E53935", "#D32F2F", "#C62828", "#B71C1C", "#880E4F"]
+                title_color_chart = "#011936" # Azul Oscuro (V53)
             else:
                 color_seq = px.colors.qualitative.Plotly
+                title_color_chart = "#F2F2F2" # Blanco
 
             fig_bar = px.bar(
                 df_chart,
                 y="AÑO", x="VALOR", orientation='h',
-                text="VALOR", color="AÑO", title=f"Evolución: {sel_ind_comp}",
+                text="VALOR", color="AÑO", 
+                # Título en NEGRITA (HTML)
+                title=f"<b>Evolución: {sel_ind_comp}</b>",
                 color_discrete_sequence=color_seq
             )
+            
+            # V53: Layout con Negritas en Ejes y Título Azul (Claro)
             fig_bar.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color=text_color), showlegend=False,
-                xaxis_title="Valor Registrado", yaxis_title="Año del Informe",
-                yaxis=dict(type='category')
+                font=dict(color=text_color, family="Arial"), # Base font
+                title_font=dict(color=title_color_chart, size=20, family="Arial Black"), # Title specific
+                showlegend=False,
+                xaxis_title="<b>Valor Registrado</b>", 
+                yaxis_title="<b>Año del Informe</b>",
+                yaxis=dict(type='category', tickfont=dict(family="Arial Black")), # Y Axis Bold
+                xaxis=dict(tickfont=dict(family="Arial Black")) # X Axis Bold
             )
+            # V53: Negritas dentro de las barras
+            fig_bar.update_traces(textfont=dict(family="Arial Black", size=14))
+            
             st.plotly_chart(fig_bar, use_container_width=True)
         else:
             st.info("Seleccione un indicador y años para ver la comparativa.")
