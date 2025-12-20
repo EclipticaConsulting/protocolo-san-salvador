@@ -484,10 +484,18 @@ elif modo_app == T["nav_view"]:
             
             df_chart.sort_values("AÑO", ascending=True, inplace=True)
             
+            # --- PALETA ROJA SOLO PARA MODO CLARO ---
+            if not dark_mode:
+                # Una secuencia de rojos bonitos (del claro al oscuro o viceversa)
+                color_seq = ["#FFCDD2", "#EF9A9A", "#E57373", "#EF5350", "#F44336", "#E53935", "#D32F2F", "#C62828", "#B71C1C", "#880E4F"]
+            else:
+                color_seq = None # Default Plotly
+
             fig_bar = px.bar(
                 df_chart,
                 y="AÑO", x="VALOR", orientation='h',
-                text="VALOR", color="AÑO", title=f"Evolución: {sel_ind_comp}"
+                text="VALOR", color="AÑO", title=f"Evolución: {sel_ind_comp}",
+                color_discrete_sequence=color_seq
             )
             fig_bar.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
