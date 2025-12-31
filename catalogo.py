@@ -75,123 +75,124 @@ MAPA_DERECHOS = {
 CATALOGO_INDICADORES = {
     
     # ==============================================================================
-    # 1. DERECHO A LA SEGURIDAD SOCIAL
+    # 1. DERECHO A LA SEGURIDAD SOCIAL (Total: 71 Indicadores)
     # ==============================================================================
     "Seguridad Social": {
         "Recepción del Derecho": {
             "Estructurales": [
-                ("001", "Ratificación de Tratados Internacionales (PIDESC, CEDAW, Convenio 102 OIT, etc.)"),
-                ("002", "Incorporación en la Constitución Política del derecho a la seguridad social"),
-                ("003", "Legislación específica (Código SS, Código Trabajo, Normas dispersas)")
+                ("SS-E-1", "Ratificación de Tratados Internacionales (PIDESC, CEDAW, C102 OIT, etc.)"),
+                ("SS-E-2", "Incorporación constitucional del derecho a la seguridad social"),
+                ("SS-E-3", "Legislación específica (Código de SS, Leyes, Normas colectivas)")
             ],
             "Procesos": [
-                ("004", "Tiempo promedio de reconocimiento del derecho a pensiones o jubilaciones"),
-                ("005", "Porcentaje de la población asegurada por sistemas contributivos"),
-                ("006", "Porcentaje de la población cubierta por sistemas no contributivos"),
-                ("007", "Porcentaje de población afiliada a regímenes especiales"),
-                ("008", "Porcentaje de adultos mayores de 65 años cubiertos por programas de atención a la vejez"),
-                ("009", "Porcentaje de afiliados que perciben como satisfactorio el nivel de cobertura [Señal de Progreso]")
+                ("SS-P-1", "Tiempo promedio de reconocimiento de pensiones/jubilaciones por sexo"),
+                ("SS-P-2", "Porcentaje de población asegurada por sistemas contributivos"),
+                ("SS-P-3", "Porcentaje de población cubierta por sistemas no contributivos"),
+                ("SS-P-4", "Porcentaje de población afiliada a regímenes especiales"),
+                ("SS-P-5", "Cobertura de programas de atención a la vejez (>65 años)"),
+                ("SS-P-6", "Nivel de satisfacción de afiliados con la cobertura")
             ],
             "Resultados": [
-                ("010", "Tasa de población económicamente activa (PEA) con cobertura"),
-                ("011", "Población cubierta por una pensión o jubilación"),
-                ("012", "Porcentaje de población asegurada a un régimen contributivo"),
-                ("013", "Número de afiliados cotizantes al sistema de pensiones"),
-                ("014", "Total de subsidios al desempleo a no afiliados")
+                ("SS-R-1", "Tasa de población económicamente activa (PEA) por quintiles"),
+                ("SS-R-2", "Población cubierta por pensión o jubilación (edad/sexo)"),
+                ("SS-R-3", "Porcentaje de población asegurada a régimen contributivo"),
+                ("SS-R-4", "Número de afiliados cotizantes al sistema de pensiones"),
+                ("SS-R-5", "Total de subsidios al desempleo a personas no afiliadas")
             ]
         },
         "Contexto Financiero y Compromiso Presupuestario": {
             "Estructurales": [
-                ("015", "Formas de financiamiento del sistema"),
-                ("016", "Características y porcentaje de la administración privada del sistema"),
-                ("017", "Existencia de estimaciones del costo fiscal de las reformas previsionales [Señal de Progreso]")
+                ("SS-E-4", "Formas de financiamiento del sistema (Aportes empleador/trabajador/Estado)"),
+                ("SS-E-5", "Características y % de administración por empresas privadas"),
+                ("SS-E-6", "Origen de fondos extrapresupuestarios (Créditos/Reservas)"),
+                ("SS-E-7", "Existencia de estimaciones del costo fiscal de reformas previsionales"),
+                ("SS-E-8", "Estudios de reforma con enfoque de género, etnia y raza")
             ],
             "Procesos": [
-                ("018", "Porcentaje total de recursos del presupuesto nacional asignados a seguridad social"),
-                ("019", "Tiempo de licencia por maternidad y paternidad y fuentes de financiamiento"),
-                ("020", "Base y frecuencia de actualización de las prestaciones"),
-                ("021", "Origen de los fondos extrapresupuestarios (créditos, reservas)"),
-                ("022", "Mecanismos para calcular la brecha salarial varones/mujeres"),
-                ("023", "Existencia de mecanismos para eximir los costos de litigio"),
-                ("024", "Disponibilidad de fondos extrapresupuestarios para financiar déficit"),
-                ("025", "Existencia de estudios de reforma con enfoque de género, etnia y raza [Señal de Progreso]")
-            ]
+                ("SS-P-7", "Porcentaje del presupuesto nacional asignado a seguridad social"),
+                ("SS-P-8", "Tiempo de licencia por maternidad/paternidad y fuente de financiamiento"),
+                ("SS-P-9", "Base y frecuencia de actualización de las prestaciones"),
+                ("SS-P-10", "Mecanismos para calcular brecha salarial de género previsional"),
+                ("SS-P-11", "Mecanismos para eximir costos de litigio"),
+                ("SS-P-12", "Utilización de fondos extrapresupuestarios para financiar déficit")
+            ],
+            "Resultados": [] # No definidos específicamente en esta categoría en la matriz de SS
         },
         "Capacidades Estatales": {
             "Estructurales": [
-                ("026", "Jerarquía y facultades de los organismos que gestionan la seguridad social"),
-                ("027", "Cobertura y alcance de políticas de inclusión de no afiliados [Señal de Progreso]")
+                ("SS-E-9", "Jerarquía y facultades de los organismos gestores de SS"),
+                ("SS-E-10", "Cobertura de políticas de inclusión para no afiliados")
             ],
             "Procesos": [
-                ("028", "Número de pensiones por invalidez otorgadas en el último año"),
-                ("029", "Total de cotizantes régimen contributivo (desagregado)"),
-                ("030", "Tasa de cobertura por accidentes de trabajo"),
-                ("031", "Campañas de formalización del empleo no registrado [Señal de Progreso]"),
-                ("032", "Campañas oficiales en materia de prevención de riesgos [Señal de Progreso]")
+                ("SS-P-13", "Número de pensiones por invalidez otorgadas por año"),
+                ("SS-P-14", "Total de cotizantes régimen contributivo (desagregado)"),
+                ("SS-P-15", "Tasa de cobertura por accidentes de trabajo"),
+                ("SS-P-16", "Tasa de desempleo promedio anual"),
+                ("SS-P-17", "Tasa de informalidad laboral"),
+                ("SS-P-18", "Campañas de formalización del empleo no registrado"),
+                ("SS-P-19", "Campañas oficiales de prevención de riesgos del trabajo")
             ],
             "Resultados": [
-                ("033", "Porcentaje de población sin cobertura en seguridad social"),
-                ("034", "Porcentaje de población con cobertura (desagregado)"),
-                ("035", "Brecha entre cobertura previsional pública y privada"),
-                ("036", "Tasa de desempleo promedio anual"),
-                ("037", "Tasa de informalidad laboral"),
-                ("038", "Tasa de lesiones profesionales por rama de actividad")
+                ("SS-R-6", "Porcentaje de población sin cobertura de seguridad social"),
+                ("SS-R-7", "Porcentaje de población con cobertura (desagregado)"),
+                ("SS-R-8", "Brecha entre cobertura previsional pública y privada"),
+                ("SS-R-9", "Tasa de lesiones profesionales por rama de actividad")
             ]
         },
         "Igualdad y No Discriminación": {
             "Estructurales": [
-                ("039", "Requisitos de acceso al sistema de seguridad social"),
-                ("040", "Requisitos de acceso para indígenas, afrodescendientes, refugiados"),
-                ("041", "Requisitos de acceso para trabajadoras del servicio doméstico"),
-                ("042", "Requisitos de acceso para trabajadores/as rurales")
+                ("SS-E-11", "Requisitos de acceso al sistema de seguridad social"),
+                ("SS-E-12", "Requisitos de acceso para indígenas, afro, refugiados y apátridas"),
+                ("SS-E-13", "Requisitos de acceso para trabajadores del servicio doméstico"),
+                ("SS-E-14", "Requisitos de acceso para trabajadores rurales")
             ],
             "Procesos": [
-                ("043", "Base de cálculo de las prestaciones para varones y mujeres"),
-                ("044", "Uso de tablas actuariales en el cálculo del beneficio"),
-                ("045", "Mecanismos de inclusión de trabajo reproductivo/cuidado"),
-                ("046", "Reglamentación y control de medidas preventivas en riesgos profesionales"),
-                ("047", "Población pensionada por sexo, edad, nivel educativo y jurisdicción"),
-                ("048", "Porcentaje de derecho-habientes que perciben pensión/subsidio"),
-                ("049", "Porcentaje de migrantes/refugiados con cobertura"),
-                ("050", "Porcentaje de trabajadores rurales con cobertura")
+                ("SS-P-20", "Base de cálculo de prestaciones para varones y mujeres"),
+                ("SS-P-21", "Uso de tablas actuariales en el cálculo del beneficio (I)"),
+                ("SS-P-22", "Uso de tablas actuariales en el cálculo del beneficio (II)")
+            ],
+            "Resultados": [
+                ("SS-R-10", "Población pensionada por nivel educativo y jurisdicción"),
+                ("SS-R-11", "Porcentaje de derechohabientes que perciben pensión o subsidio"),
+                ("SS-R-12", "Cobertura de SS para migrantes, refugiados y apátridas"),
+                ("SS-R-13", "Cobertura de SS para trabajadores rurales")
             ]
         },
         "Acceso a Información Pública y Participación": {
             "Estructurales": [
-                ("051", "Características y regularidad de información estadística"),
-                ("052", "Campañas oficiales de difusión sobre derechos [Señal de Progreso]")
+                ("SS-E-15", "Regularidad de producción estadística (desagregada)"),
+                ("SS-E-16", "Campañas oficiales de difusión sobre derechos de SS"),
+                ("SS-E-17", "Acciones sindicales de difusión de garantías de SS")
             ],
             "Procesos": [
-                ("053", "Frecuencia de informes enviados a los cotizantes"),
-                ("054", "Acciones sindicales de difusión de garantías [Señal de Progreso]")
+                ("SS-P-23", "Control de aplicación de medidas preventivas en riesgos profesionales"),
+                ("SS-P-24", "Frecuencia de informes enviados a cotizantes (I)"),
+                ("SS-P-25", "Frecuencia de informes enviados a cotizantes (II)"),
+                ("SS-P-26", "Características de portales de información sobre cobertura graciable")
             ],
-            "Resultados": [
-                ("055", "Total de accidentes de trabajo reportados"),
-                ("056", "Características de portales/medios sobre programas no contributivos [Señal de Progreso]")
-            ]
+            "Resultados": []
         },
         "Acceso a la Justicia": {
             "Estructurales": [
-                ("057", "Instancias administrativas para radicar denuncias"),
-                ("058", "Cantidad de acciones constitucionales (amparos, tutelas)"),
-                ("059", "Servicios jurídicos gratuitos de protección"),
-                ("060", "Oficinas públicas de mediación o conciliación"),
-                ("061", "Aplicación de garantías procesales")
+                ("SS-E-18", "Instancias administrativas para denuncias por incumplimiento"),
+                ("SS-E-19", "Cantidad de acciones constitucionales (amparos/tutelas)"),
+                ("SS-E-20", "Existencia de servicios jurídicos gratuitos de protección"),
+                ("SS-E-21", "Oficinas públicas de mediación o conciliación"),
+                ("SS-E-22", "Aplicación de garantías procesales en juicios de SS")
             ],
             "Procesos": [
-                ("062", "Número de denuncias relativas a seguridad social"),
-                ("063", "Duración promedio de casos tramitados por defensoría"),
-                ("064", "Organismos estatales de control de fondos privados (capitalización)"),
-                ("065", "Organismos estatales de control de fondos privados (salud/riesgos)"),
-                ("066", "Encuestas de satisfacción de beneficiarios [Señal de Progreso]")
+                ("SS-P-27", "Número de denuncias relativas al derecho a la SS"),
+                ("SS-P-28", "Duración promedio de casos en defensoría oficial"),
+                ("SS-P-29", "Control estatal sobre fondos de capitalización privada (I)"),
+                ("SS-P-30", "Control estatal sobre fondos de capitalización privada (II)"),
+                ("SS-P-31", "Número de decisiones judiciales que otorgan cobertura"),
+                ("SS-P-32", "Acciones judiciales por denegatoria de pensión no contributiva"),
+                ("SS-P-33", "Capacitación de jueces y abogados en derecho a la SS"),
+                ("SS-P-34", "Encuestas de satisfacción respecto del sistema de SS"),
+                ("SS-P-35", "Medios de difusión de información sobre derechos de SS"),
+                ("SS-P-36", "Cobertura de servicios de traducción en lenguas indígenas")
             ],
-            "Resultados": [
-                ("067", "Número de decisiones judiciales que otorgan cobertura"),
-                ("068", "Acciones judiciales por denegatoria de pensión no contributiva"),
-                ("069", "Políticas de capacitación de jueces y abogados"),
-                ("070", "Cobertura de medios que difunden información de derechos [Señal de Progreso]"),
-                ("071", "Cobertura de servicios de traducción en lenguas indígenas [Señal de Progreso]")
-            ]
+            "Resultados": []
         }
     },
 
@@ -1094,3 +1095,4 @@ CATALOGO_INDICADORES = {
         }
     }
 }
+
