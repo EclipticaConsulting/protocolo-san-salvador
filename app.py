@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import streamlit as st
 import pandas as pd
 import gspread
@@ -140,7 +142,6 @@ def crear_donut(valor, meta, color_fill, color_empty, titulo_centro, text_color)
         sort=False,
         hoverinfo='label+value'
     )])
-    # V53: Negritas en el número central (Arial Black)
     fig.update_layout(
         showlegend=False,
         annotations=[dict(
@@ -194,6 +195,7 @@ st.markdown("---")
 
 img_base64 = get_base64_image("watermark_protocolo.png")
 
+# CSS para Dark/Light Mode (se mantiene igual para no romper el diseño de Eclíptica)
 if dark_mode:
     st.markdown(f"""
     <style>
@@ -334,22 +336,28 @@ if modo_app == T["nav_load"]:
             else:
                 agrupamientos_disp = ["No hay datos cargados"]
             m_agr = st.selectbox("Agrupamiento", agrupamientos_disp, key="sel_agr")
+            
             categorias_disp = []
             if der_sel in CATALOGO_INDICADORES and m_agr in CATALOGO_INDICADORES[der_sel]:
                 categorias_disp = list(CATALOGO_INDICADORES[der_sel][m_agr].keys())
             m_cat = st.selectbox("Categoría", categorias_disp if categorias_disp else ["Estructural", "Proceso", "Resultado"], key="sel_cat")
+            
             indicadores_obj = []
             if der_sel in CATALOGO_INDICADORES and m_agr in CATALOGO_INDICADORES[der_sel] and m_cat in CATALOGO_INDICADORES[der_sel][m_agr]:
                 indicadores_obj = CATALOGO_INDICADORES[der_sel][m_agr][m_cat]
+            
             opciones_ind = [f"[{x[0]}] {x[1]}" for x in indicadores_obj]
             seleccion_ind = st.selectbox("Indicador", opciones_ind if opciones_ind else ["Otro / Personalizado"], key="sel_ind")
+            
             if seleccion_ind and "[" in seleccion_ind:
                 ref_auto = seleccion_ind.split("]")[0].replace("[", "")
                 nombre_ind = seleccion_ind.split("] ")[1]
             else:
                 ref_auto = "000"; nombre_ind = seleccion_ind
+            
             st.info(f"📌 Referencia Asignada: **{ref_auto}**")
             st.markdown("---")
+            
             c1, c2 = st.columns(2)
             with c1:
                 m_des = st.selectbox("Desagregación", LISTA_DESAGREGACION, key="sel_des")
@@ -357,25 +365,53 @@ if modo_app == T["nav_load"]:
             with c2:
                 m_val = st.text_input("Valor", key="input_val")
                 m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue")
+            
             if st.button(T["manual_btn"], type="primary", use_container_width=True):
                 if not pais_sel or not der_sel or not anio_sel:
                     st.error("⚠️ Falta seleccionar País, Derecho o Año.")
                 else:
                     with st.spinner("Agregando..."):
-                            new_row = {"DERECHO":der_sel, "CATEGORÍA":m_cat, "AGRUPAMIENTO":m_agr, "REF_INDICADOR":ref_auto, "INDICADOR":nombre_ind, "DESAGREGACIÓN":m_des, "UNIDAD":m_uni, "AÑO":anio_sel, "VALOR":m_val, "FUENTE":m_fue, "ESTADO_DATO":"Manual"}
-                            st.session_state.df_buffer = pd.concat([st.session_state.df_buffer, pd.DataFrame([new_row])], ignore_index=True)
-                            time.sleep(0.1)
-                            st.rerun()
+                        # V55: Mapeo completo de campos para la Base de Datos
+                        new_row = {
+                            "DERECHO": der_sel, 
+                            "AGRUPAMIENTO": m_agr,
+                            "CATEGORÍA": m_cat, 
+                            "INDICADOR": nombre_ind, 
+                            "REF_INDICADOR": ref_auto, 
+                            "DESAGREGACIÓN": m_des, 
+                            "VALOR": m_val, 
+                            "UNIDAD": m_uni, 
+                            "AÑO": anio_sel, 
+                            "FUENTE": m_fue, 
+                            "ESTADO_DATO": "Manual"
+                        }
+                        st.session_state.df_buffer = pd.concat([st.session_state.df_buffer, pd.DataFrame([new_row])], ignore_index=True)
+                        time.sleep(0.1)
+                        st.rerun()
 
     if not st.session_state.df_buffer.empty:
         df_work = st.session_state.df_buffer.copy()
+        # Generar UID dinámico
         df_work["UID"] = df_work.apply(lambda r: generar_uid(r, pais_sel, anio_sel, der_sel), axis=1)
-        cols = ["UID", "DERECHO", "CATEGORÍA", "INDICADOR", "VALOR", "AÑO", "AGRUPAMIENTO", "REF_INDICADOR"]
-        for c in cols: 
-            if c not in df_work.columns: df_work[c]=""
+        
+        # V55 CORRECCIÓN DE ORDEN (A-L):
+        # UID(A), DERECHO(B), AGRUPAMIENTO(C), CATEGORÍA(D), INDICADOR(E), REF_INDICADOR(F), 
+        # DESAGREGACIÓN(G), VALOR(H), UNIDAD(I), AÑO(J), FUENTE(K), ESTADO_DATO(L)
+        cols_db = [
+            "UID", "DERECHO", "AGRUPAMIENTO", "CATEGORÍA", "INDICADOR", 
+            "REF_INDICADOR", "DESAGREGACIÓN", "VALOR", "UNIDAD", "AÑO", 
+            "FUENTE", "ESTADO_DATO"
+        ]
+        
+        # Asegurar que todas las columnas existan
+        for col in cols_db:
+            if col not in df_work.columns: df_work[col] = ""
+            
         st.divider()
         st.markdown("### Tabla de Datos (Pre-Carga)")
-        df_fin = st.data_editor(df_work[cols], num_rows="dynamic", height=400, use_container_width=True)
+        # Mostramos solo las columnas del mapeo final
+        df_fin = st.data_editor(df_work[cols_db], num_rows="dynamic", height=400, use_container_width=True)
+        
         cb1, cb2 = st.columns(2)
         with cb1:
             if st.button(T["btn_save"], type="secondary", use_container_width=True):
@@ -387,7 +423,7 @@ if modo_app == T["nav_load"]:
             if st.button(T["btn_discard"], use_container_width=True):
                 st.session_state.df_buffer = pd.DataFrame(); st.rerun()
 
-# --- MÓDULO 2: VISUALIZACIÓN ---
+# --- MÓDULO 2: VISUALIZACIÓN (Dashboard) ---
 elif modo_app == T["nav_view"]:
     st.subheader(T["view_title"])
     if st.button(T["view_refresh"]):
@@ -415,7 +451,7 @@ elif modo_app == T["nav_view"]:
             except: idx_anio = 0
             filtro_anio = st.selectbox("Filtrar por Año (Dashboard)", opciones_anio, index=idx_anio)
         
-        # --- LÓGICA DE FILTRADO (KPI & DONUTS) ---
+        # Filtrado para el Dashboard
         if not df_historico.empty:
             df_base = df_historico.copy()
             if filtro_pais in MAPA_PAISES:
@@ -431,6 +467,7 @@ elif modo_app == T["nav_view"]:
             df_show_kpi = pd.DataFrame()
             df_show_context = pd.DataFrame()
 
+        # KPIs y Donuts
         indicadores_cargados = df_show_kpi["REF_INDICADOR"].nunique() if not df_show_kpi.empty else 0
         cargados_cat = {"Estructurales": 0, "Procesos": 0, "Resultados": 0}
         if not df_show_kpi.empty and "CATEGORÍA" in df_show_kpi.columns:
@@ -465,22 +502,17 @@ elif modo_app == T["nav_view"]:
 
         st.divider()
 
-        # --- SECCIÓN 2: ANÁLISIS COMPARATIVO ---
+        # Comparativo Bar Chart
         st.markdown(f"<h3 style='color:{text_color}'><b>{T['dash_chart_bar']}</b></h3>", unsafe_allow_html=True)
         
-        indicadores_disponibles = []
-        if not df_show_context.empty:
-            indicadores_disponibles = sorted(df_show_context["INDICADOR"].unique())
+        indicadores_disponibles = sorted(df_show_context["INDICADOR"].unique()) if not df_show_context.empty else []
             
         c_ana1, c_ana2 = st.columns([2, 1])
         with c_ana1:
             sel_ind_comp = st.selectbox("Seleccione Indicador para Comparar", indicadores_disponibles)
         with c_ana2:
             full_years_list = [str(x) for x in range(2000, 2031)]
-            anios_con_datos = []
-            if sel_ind_comp and not df_show_context.empty:
-                anios_con_datos = sorted(df_show_context[df_show_context["INDICADOR"] == sel_ind_comp]["AÑO"].unique().astype(str))
-            
+            anios_con_datos = sorted(df_show_context[df_show_context["INDICADOR"] == sel_ind_comp]["AÑO"].unique().astype(str)) if sel_ind_comp else []
             sel_anios_comp = st.multiselect("Seleccione Años", full_years_list, default=anios_con_datos)
 
         if sel_ind_comp and sel_anios_comp and not df_show_context.empty:
@@ -488,41 +520,22 @@ elif modo_app == T["nav_view"]:
                 (df_show_context["INDICADOR"] == sel_ind_comp) & 
                 (df_show_context["AÑO"].astype(str).isin(sel_anios_comp))
             ].copy()
-            
             df_chart.sort_values("AÑO", ascending=True, inplace=True)
-            
-            # --- V54: Título LIMPIO (Sin 'Evolución:') ---
             df_chart["AÑO"] = df_chart["AÑO"].astype(str)
 
-            if not dark_mode:
-                color_seq = ["#FFCDD2", "#EF9A9A", "#E57373", "#EF5350", "#F44336", "#E53935", "#D32F2F", "#C62828", "#B71C1C", "#880E4F"]
-                title_color_chart = "#011936" # Azul Oscuro (V53)
-            else:
-                color_seq = px.colors.qualitative.Plotly
-                title_color_chart = "#F2F2F2" # Blanco
+            color_seq = ["#FFCDD2", "#EF9A9A", "#E57373", "#EF5350", "#F44336"] if not dark_mode else px.colors.qualitative.Plotly
+            title_color_chart = "#011936" if not dark_mode else "#F2F2F2"
 
             fig_bar = px.bar(
-                df_chart,
-                y="AÑO", x="VALOR", orientation='h',
-                text="VALOR", color="AÑO", 
-                # Título LIMPIO V54: Solo el nombre del indicador
-                title=f"<b>{sel_ind_comp}</b>",
-                color_discrete_sequence=color_seq
+                df_chart, y="AÑO", x="VALOR", orientation='h', text="VALOR", color="AÑO", 
+                title=f"<b>{sel_ind_comp}</b>", color_discrete_sequence=color_seq
             )
-            
-            # V53: Layout con Negritas
             fig_bar.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                 font=dict(color=text_color, family="Arial"), 
                 title_font=dict(color=title_color_chart, size=20, family="Arial Black"), 
-                showlegend=False,
-                xaxis_title="<b>Valor Registrado</b>", 
-                yaxis_title="<b>Año del Informe</b>",
-                yaxis=dict(type='category', tickfont=dict(family="Arial Black")), 
-                xaxis=dict(tickfont=dict(family="Arial Black")) 
+                showlegend=False, xaxis_title="<b>Valor Registrado</b>", yaxis_title="<b>Año del Informe</b>"
             )
-            fig_bar.update_traces(textfont=dict(family="Arial Black", size=14))
-            
             st.plotly_chart(fig_bar, use_container_width=True)
         else:
             st.info("Seleccione un indicador y años para ver la comparativa.")
@@ -533,4 +546,3 @@ elif modo_app == T["nav_view"]:
             
     except Exception as e:
         st.error(f"Error en el Dashboard: {e}")
-
