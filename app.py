@@ -76,13 +76,14 @@ TEXTOS = {
 # --- 3. FUNCIONES ---
 def generar_uid(row, pais_nombre, anio_informe, derecho_seleccionado):
     try:
+        if not pais_nombre: return "ERR-PAIS"
         code_pais = "UNK"
         for nombre, codigo in MAPA_PAISES.items():
             if nombre in pais_nombre:
                 code_pais = codigo; break
         cat_raw = str(row.get("CATEGORÍA", "X")).strip().upper()
-        code_cat = cat_raw[0] if cat_raw else "X"
-        code_anio = str(anio_informe)[-2:]
+        code_cat = cat_raw[0] if cat_raw and cat_raw != "None" else "X"
+        code_anio = str(anio_informe)[-2:] if anio_informe else "00"
         code_ref = str(row.get("REF_INDICADOR", "000"))
         code_der = MAPA_DERECHOS.get(derecho_seleccionado, "OTR")
         return f"{code_pais}-{code_cat}-{code_anio}-{code_ref}-{code_der}"
@@ -105,7 +106,26 @@ def conectar_google_sheet():
 
 def guardar_en_sheet(df):
     ws = conectar_google_sheet()
-    if ws: ws.append_rows(df.values.tolist())
+    if ws:
+        # --- CORRECCIÓN CRÍTICA: ORDEN DE COLUMNAS (A-L) ---
+        # Esto asegura que coincida con la estructura de la Hoja de Cálculo
+        cols_finales = [
+            "UID",              # A
+            "DERECHO",          # B
+            "AGRUPAMIENTO",     # C
+            "CATEGORÍA",        # D
+            "INDICADOR",        # E
+            "REF_INDICADOR",    # F
+            "DESAGREGACIÓN",    # G
+            "VALOR",            # H
+            "UNIDAD",           # I
+            "AÑO",              # J
+            "FUENTE",           # K
+            "ESTADO_DATO"       # L
+        ]
+        # Reordenamos el DataFrame y rellenamos nulos con vacío
+        df_ordenado = df[cols_finales].fillna("")
+        ws.append_rows(df_ordenado.values.tolist())
 
 def cargar_datos_sheet():
     ws = conectar_google_sheet()
@@ -195,7 +215,7 @@ st.markdown("---")
 
 img_base64 = get_base64_image("watermark_protocolo.png")
 
-# CSS para Dark/Light Mode (se mantiene igual para no romper el diseño de Eclíptica)
+# CSS para Dark/Light Mode
 if dark_mode:
     st.markdown(f"""
     <style>
@@ -317,6 +337,7 @@ else:
 if modo_app == T["nav_load"]:
     c_meta1, c_meta2, c_meta3 = st.columns(3)
     with c_meta1:
+        # Index None para obligar a seleccionar
         pais_sel = st.selectbox(T["meta_country"], list(MAPA_PAISES.keys()), index=None, placeholder="Seleccione un país...")
     with c_meta2:
         der_sel = st.selectbox(T["meta_right"], list(MAPA_DERECHOS.keys()), index=None, placeholder="Seleccione un derecho...")
@@ -335,50 +356,59 @@ if modo_app == T["nav_load"]:
                 agrupamientos_disp = list(CATALOGO_INDICADORES[der_sel].keys())
             else:
                 agrupamientos_disp = ["No hay datos cargados"]
-            m_agr = st.selectbox("Agrupamiento", agrupamientos_disp, key="sel_agr")
+            
+            # Index None
+            m_agr = st.selectbox("Agrupamiento", agrupamientos_disp, key="sel_agr", index=None, placeholder="Seleccione agrupamiento...")
             
             categorias_disp = []
-            if der_sel in CATALOGO_INDICADORES and m_agr in CATALOGO_INDICADORES[der_sel]:
+            if der_sel in CATALOGO_INDICADORES and m_agr and m_agr in CATALOGO_INDICADORES[der_sel]:
                 categorias_disp = list(CATALOGO_INDICADORES[der_sel][m_agr].keys())
-            m_cat = st.selectbox("Categoría", categorias_disp if categorias_disp else ["Estructural", "Proceso", "Resultado"], key="sel_cat")
+            
+            # Index None
+            m_cat = st.selectbox("Categoría", categorias_disp if categorias_disp else ["Estructural", "Proceso", "Resultado"], key="sel_cat", index=None, placeholder="Seleccione categoría...")
             
             indicadores_obj = []
-            if der_sel in CATALOGO_INDICADORES and m_agr in CATALOGO_INDICADORES[der_sel] and m_cat in CATALOGO_INDICADORES[der_sel][m_agr]:
+            if der_sel in CATALOGO_INDICADORES and m_agr and m_cat and m_agr in CATALOGO_INDICADORES[der_sel] and m_cat in CATALOGO_INDICADORES[der_sel][m_agr]:
                 indicadores_obj = CATALOGO_INDICADORES[der_sel][m_agr][m_cat]
             
             opciones_ind = [f"[{x[0]}] {x[1]}" for x in indicadores_obj]
-            seleccion_ind = st.selectbox("Indicador", opciones_ind if opciones_ind else ["Otro / Personalizado"], key="sel_ind")
+            # Index None
+            seleccion_ind = st.selectbox("Indicador", opciones_ind if opciones_ind else ["Otro / Personalizado"], key="sel_ind", index=None, placeholder="Seleccione indicador...")
             
             if seleccion_ind and "[" in seleccion_ind:
                 ref_auto = seleccion_ind.split("]")[0].replace("[", "")
                 nombre_ind = seleccion_ind.split("] ")[1]
             else:
-                ref_auto = "000"; nombre_ind = seleccion_ind
+                ref_auto = "000"
+                nombre_ind = seleccion_ind if seleccion_ind else ""
             
             st.info(f"📌 Referencia Asignada: **{ref_auto}**")
             st.markdown("---")
             
             c1, c2 = st.columns(2)
             with c1:
-                m_des = st.selectbox("Desagregación", LISTA_DESAGREGACION, key="sel_des")
-                m_uni = st.selectbox("Unidad", LISTA_UNIDADES, key="sel_uni")
+                # Index None
+                m_des = st.selectbox("Desagregación", LISTA_DESAGREGACION, key="sel_des", index=None, placeholder="Seleccione...")
+                m_uni = st.selectbox("Unidad", LISTA_UNIDADES, key="sel_uni", index=None, placeholder="Seleccione...")
             with c2:
                 m_val = st.text_input("Valor", key="input_val")
-                m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue")
+                # Index None
+                m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue", index=None, placeholder="Seleccione...")
             
             if st.button(T["manual_btn"], type="primary", use_container_width=True):
-                if not pais_sel or not der_sel or not anio_sel:
-                    st.error("⚠️ Falta seleccionar País, Derecho o Año.")
+                # Validación estricta: No permitir guardar si faltan campos esenciales
+                if not pais_sel or not der_sel or not anio_sel or not seleccion_ind or not m_uni or not m_fue:
+                    st.error("⚠️ Faltan campos obligatorios (País, Derecho, Año, Indicador, Unidad o Fuente).")
                 else:
                     with st.spinner("Agregando..."):
-                        # V55: Mapeo completo de campos para la Base de Datos
+                        # Diccionario con todos los campos
                         new_row = {
                             "DERECHO": der_sel, 
-                            "AGRUPAMIENTO": m_agr,
-                            "CATEGORÍA": m_cat, 
+                            "AGRUPAMIENTO": m_agr if m_agr else "",
+                            "CATEGORÍA": m_cat if m_cat else "", 
                             "INDICADOR": nombre_ind, 
                             "REF_INDICADOR": ref_auto, 
-                            "DESAGREGACIÓN": m_des, 
+                            "DESAGREGACIÓN": m_des if m_des else "", 
                             "VALOR": m_val, 
                             "UNIDAD": m_uni, 
                             "AÑO": anio_sel, 
@@ -394,28 +424,26 @@ if modo_app == T["nav_load"]:
         # Generar UID dinámico
         df_work["UID"] = df_work.apply(lambda r: generar_uid(r, pais_sel, anio_sel, der_sel), axis=1)
         
-        # V55 CORRECCIÓN DE ORDEN (A-L):
-        # UID(A), DERECHO(B), AGRUPAMIENTO(C), CATEGORÍA(D), INDICADOR(E), REF_INDICADOR(F), 
-        # DESAGREGACIÓN(G), VALOR(H), UNIDAD(I), AÑO(J), FUENTE(K), ESTADO_DATO(L)
-        cols_db = [
+        # Lista para Visualización en app (puede ser diferente a la de carga, pero aquí la igualamos para control)
+        cols_view = [
             "UID", "DERECHO", "AGRUPAMIENTO", "CATEGORÍA", "INDICADOR", 
             "REF_INDICADOR", "DESAGREGACIÓN", "VALOR", "UNIDAD", "AÑO", 
             "FUENTE", "ESTADO_DATO"
         ]
         
         # Asegurar que todas las columnas existan
-        for col in cols_db:
+        for col in cols_view:
             if col not in df_work.columns: df_work[col] = ""
             
         st.divider()
         st.markdown("### Tabla de Datos (Pre-Carga)")
-        # Mostramos solo las columnas del mapeo final
-        df_fin = st.data_editor(df_work[cols_db], num_rows="dynamic", height=400, use_container_width=True)
+        df_fin = st.data_editor(df_work[cols_view], num_rows="dynamic", height=400, use_container_width=True)
         
         cb1, cb2 = st.columns(2)
         with cb1:
             if st.button(T["btn_save"], type="secondary", use_container_width=True):
                 try:
+                    # Aquí es donde se garantiza el orden A-L
                     guardar_en_sheet(df_fin)
                     st.toast(T["toast_save"], icon="🎉"); st.balloons(); st.session_state.df_buffer = pd.DataFrame(); st.rerun()
                 except Exception as e: st.error(str(e))
@@ -546,3 +574,4 @@ elif modo_app == T["nav_view"]:
             
     except Exception as e:
         st.error(f"Error en el Dashboard: {e}")
+
