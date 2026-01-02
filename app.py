@@ -107,8 +107,7 @@ def conectar_google_sheet():
 def guardar_en_sheet(df):
     ws = conectar_google_sheet()
     if ws:
-        # --- CORRECCIÓN CRÍTICA: ORDEN DE COLUMNAS (A-L) ---
-        # Esto asegura que coincida con la estructura de la Hoja de Cálculo
+        # --- DEFINICIÓN DE COLUMNAS (A-M) ---
         cols_finales = [
             "UID",              # A
             "DERECHO",          # B
@@ -120,11 +119,12 @@ def guardar_en_sheet(df):
             "VALOR",            # H
             "UNIDAD",           # I
             "AÑO",              # J
-            "FUENTE",           # K
-            "ESTADO_DATO"       # L
+            "PAIS",             # K (Solicitado explícitamente)
+            "FUENTE",           # L (Desplazado para no perderlo)
+            "ESTADO_DATO"       # M (Desplazado para no perderlo)
         ]
-        # Reordenamos el DataFrame y rellenamos nulos con vacío
-        df_ordenado = df[cols_finales].fillna("")
+        # Reordenamos y rellenamos vacíos
+        df_ordenado = df.reindex(columns=cols_finales).fillna("")
         ws.append_rows(df_ordenado.values.tolist())
 
 def cargar_datos_sheet():
@@ -337,7 +337,7 @@ else:
 if modo_app == T["nav_load"]:
     c_meta1, c_meta2, c_meta3 = st.columns(3)
     with c_meta1:
-        # Index None para obligar a seleccionar
+        # Index None para obligar a seleccionar (VACIO POR DEFECTO)
         pais_sel = st.selectbox(T["meta_country"], list(MAPA_PAISES.keys()), index=None, placeholder="Seleccione un país...")
     with c_meta2:
         der_sel = st.selectbox(T["meta_right"], list(MAPA_DERECHOS.keys()), index=None, placeholder="Seleccione un derecho...")
@@ -357,14 +357,14 @@ if modo_app == T["nav_load"]:
             else:
                 agrupamientos_disp = ["No hay datos cargados"]
             
-            # Index None
+            # VACIO POR DEFECTO
             m_agr = st.selectbox("Agrupamiento", agrupamientos_disp, key="sel_agr", index=None, placeholder="Seleccione agrupamiento...")
             
             categorias_disp = []
             if der_sel in CATALOGO_INDICADORES and m_agr and m_agr in CATALOGO_INDICADORES[der_sel]:
                 categorias_disp = list(CATALOGO_INDICADORES[der_sel][m_agr].keys())
             
-            # Index None
+            # VACIO POR DEFECTO
             m_cat = st.selectbox("Categoría", categorias_disp if categorias_disp else ["Estructural", "Proceso", "Resultado"], key="sel_cat", index=None, placeholder="Seleccione categoría...")
             
             indicadores_obj = []
@@ -372,7 +372,7 @@ if modo_app == T["nav_load"]:
                 indicadores_obj = CATALOGO_INDICADORES[der_sel][m_agr][m_cat]
             
             opciones_ind = [f"[{x[0]}] {x[1]}" for x in indicadores_obj]
-            # Index None
+            # VACIO POR DEFECTO
             seleccion_ind = st.selectbox("Indicador", opciones_ind if opciones_ind else ["Otro / Personalizado"], key="sel_ind", index=None, placeholder="Seleccione indicador...")
             
             if seleccion_ind and "[" in seleccion_ind:
@@ -387,21 +387,20 @@ if modo_app == T["nav_load"]:
             
             c1, c2 = st.columns(2)
             with c1:
-                # Index None
+                # VACIO POR DEFECTO
                 m_des = st.selectbox("Desagregación", LISTA_DESAGREGACION, key="sel_des", index=None, placeholder="Seleccione...")
                 m_uni = st.selectbox("Unidad", LISTA_UNIDADES, key="sel_uni", index=None, placeholder="Seleccione...")
             with c2:
                 m_val = st.text_input("Valor", key="input_val")
-                # Index None
+                # VACIO POR DEFECTO
                 m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue", index=None, placeholder="Seleccione...")
             
             if st.button(T["manual_btn"], type="primary", use_container_width=True):
-                # Validación estricta: No permitir guardar si faltan campos esenciales
+                # Validación estricta
                 if not pais_sel or not der_sel or not anio_sel or not seleccion_ind or not m_uni or not m_fue:
                     st.error("⚠️ Faltan campos obligatorios (País, Derecho, Año, Indicador, Unidad o Fuente).")
                 else:
                     with st.spinner("Agregando..."):
-                        # Diccionario con todos los campos
                         new_row = {
                             "DERECHO": der_sel, 
                             "AGRUPAMIENTO": m_agr if m_agr else "",
@@ -412,10 +411,22 @@ if modo_app == T["nav_load"]:
                             "VALOR": m_val, 
                             "UNIDAD": m_uni, 
                             "AÑO": anio_sel, 
+                            "PAIS": pais_sel, # Capturamos el país seleccionado arriba
                             "FUENTE": m_fue, 
                             "ESTADO_DATO": "Manual"
                         }
                         st.session_state.df_buffer = pd.concat([st.session_state.df_buffer, pd.DataFrame([new_row])], ignore_index=True)
+                        
+                        # --- LIMPIEZA DE CASILLAS PARA NUEVO REGISTRO ---
+                        # Seteamos las claves del session_state a None o vacío
+                        st.session_state["sel_agr"] = None
+                        st.session_state["sel_cat"] = None
+                        st.session_state["sel_ind"] = None
+                        st.session_state["sel_des"] = None
+                        st.session_state["sel_uni"] = None
+                        st.session_state["input_val"] = ""
+                        st.session_state["sel_fue"] = None
+                        
                         time.sleep(0.1)
                         st.rerun()
 
@@ -424,14 +435,14 @@ if modo_app == T["nav_load"]:
         # Generar UID dinámico
         df_work["UID"] = df_work.apply(lambda r: generar_uid(r, pais_sel, anio_sel, der_sel), axis=1)
         
-        # Lista para Visualización en app (puede ser diferente a la de carga, pero aquí la igualamos para control)
+        # DEFINIMOS COLUMNAS PARA VISUALIZACIÓN EN LA APP
+        # Incluye PAIS en K, FUENTE en L, ESTADO en M
         cols_view = [
             "UID", "DERECHO", "AGRUPAMIENTO", "CATEGORÍA", "INDICADOR", 
             "REF_INDICADOR", "DESAGREGACIÓN", "VALOR", "UNIDAD", "AÑO", 
-            "FUENTE", "ESTADO_DATO"
+            "PAIS", "FUENTE", "ESTADO_DATO"
         ]
         
-        # Asegurar que todas las columnas existan
         for col in cols_view:
             if col not in df_work.columns: df_work[col] = ""
             
@@ -443,7 +454,7 @@ if modo_app == T["nav_load"]:
         with cb1:
             if st.button(T["btn_save"], type="secondary", use_container_width=True):
                 try:
-                    # Aquí es donde se garantiza el orden A-L
+                    # Llama a la función blindada con el orden correcto
                     guardar_en_sheet(df_fin)
                     st.toast(T["toast_save"], icon="🎉"); st.balloons(); st.session_state.df_buffer = pd.DataFrame(); st.rerun()
                 except Exception as e: st.error(str(e))
@@ -479,7 +490,6 @@ elif modo_app == T["nav_view"]:
             except: idx_anio = 0
             filtro_anio = st.selectbox("Filtrar por Año (Dashboard)", opciones_anio, index=idx_anio)
         
-        # Filtrado para el Dashboard
         if not df_historico.empty:
             df_base = df_historico.copy()
             if filtro_pais in MAPA_PAISES:
@@ -495,7 +505,6 @@ elif modo_app == T["nav_view"]:
             df_show_kpi = pd.DataFrame()
             df_show_context = pd.DataFrame()
 
-        # KPIs y Donuts
         indicadores_cargados = df_show_kpi["REF_INDICADOR"].nunique() if not df_show_kpi.empty else 0
         cargados_cat = {"Estructurales": 0, "Procesos": 0, "Resultados": 0}
         if not df_show_kpi.empty and "CATEGORÍA" in df_show_kpi.columns:
@@ -530,7 +539,6 @@ elif modo_app == T["nav_view"]:
 
         st.divider()
 
-        # Comparativo Bar Chart
         st.markdown(f"<h3 style='color:{text_color}'><b>{T['dash_chart_bar']}</b></h3>", unsafe_allow_html=True)
         
         indicadores_disponibles = sorted(df_show_context["INDICADOR"].unique()) if not df_show_context.empty else []
@@ -574,4 +582,3 @@ elif modo_app == T["nav_view"]:
             
     except Exception as e:
         st.error(f"Error en el Dashboard: {e}")
-
