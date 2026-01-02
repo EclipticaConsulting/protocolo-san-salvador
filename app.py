@@ -73,7 +73,7 @@ TEXTOS = {
     }
 }
 
-# --- 3. FUNCIONES ---
+# --- 3. FUNCIONES AUXILIARES ---
 def generar_uid(row, pais_nombre, anio_informe, derecho_seleccionado):
     try:
         if not pais_nombre: return "ERR-PAIS"
@@ -107,7 +107,7 @@ def conectar_google_sheet():
 def guardar_en_sheet(df):
     ws = conectar_google_sheet()
     if ws:
-        # --- DEFINICIÓN DE COLUMNAS (A-M) ---
+        # --- ORDEN DE COLUMNAS (A-M) ---
         cols_finales = [
             "UID",              # A
             "DERECHO",          # B
@@ -119,9 +119,9 @@ def guardar_en_sheet(df):
             "VALOR",            # H
             "UNIDAD",           # I
             "AÑO",              # J
-            "PAIS",             # K (Solicitado explícitamente)
-            "FUENTE",           # L (Desplazado para no perderlo)
-            "ESTADO_DATO"       # M (Desplazado para no perderlo)
+            "PAIS",             # K
+            "FUENTE",           # L
+            "ESTADO_DATO"       # M
         ]
         # Reordenamos y rellenamos vacíos
         df_ordenado = df.reindex(columns=cols_finales).fillna("")
@@ -178,7 +178,71 @@ def crear_donut(valor, meta, color_fill, color_empty, titulo_centro, text_color)
     )
     return fig
 
-# --- INTERFAZ ---
+# --- CALLBACK PARA AGREGAR REGISTRO ---
+# Esta función se ejecuta al hacer clic en el botón "Agregar"
+def callback_agregar_registro():
+    # 1. Recuperar valores del estado (Session State)
+    pais = st.session_state.get("meta_pais")
+    derecho = st.session_state.get("meta_der")
+    anio = st.session_state.get("meta_anio")
+    
+    agrupamiento = st.session_state.get("sel_agr")
+    categoria = st.session_state.get("sel_cat")
+    indicador_raw = st.session_state.get("sel_ind")
+    desagregacion = st.session_state.get("sel_des")
+    unidad = st.session_state.get("sel_uni")
+    valor = st.session_state.get("input_val")
+    fuente = st.session_state.get("sel_fue")
+
+    # 2. Validación
+    if not pais or not derecho or not anio or not indicador_raw or not unidad or not fuente:
+        st.session_state["feedback_msg"] = ("error", "⚠️ Faltan campos obligatorios (País, Derecho, Año, Indicador, Unidad o Fuente).")
+        return
+
+    # 3. Procesar nombre y referencia
+    if indicador_raw and "[" in indicador_raw:
+        ref_auto = indicador_raw.split("]")[0].replace("[", "")
+        nombre_ind = indicador_raw.split("] ")[1]
+    else:
+        ref_auto = "000"
+        nombre_ind = indicador_raw if indicador_raw else ""
+
+    # 4. Crear nueva fila
+    new_row = {
+        "DERECHO": derecho, 
+        "AGRUPAMIENTO": agrupamiento if agrupamiento else "",
+        "CATEGORÍA": categoria if categoria else "", 
+        "INDICADOR": nombre_ind, 
+        "REF_INDICADOR": ref_auto, 
+        "DESAGREGACIÓN": desagregacion if desagregacion else "", 
+        "VALOR": valor if valor else "", 
+        "UNIDAD": unidad, 
+        "AÑO": anio, 
+        "PAIS": pais, 
+        "FUENTE": fuente, 
+        "ESTADO_DATO": "Manual"
+    }
+
+    # 5. Agregar al buffer
+    if "df_buffer" not in st.session_state:
+        st.session_state.df_buffer = pd.DataFrame()
+    
+    st.session_state.df_buffer = pd.concat([st.session_state.df_buffer, pd.DataFrame([new_row])], ignore_index=True)
+    
+    # 6. LIMPIAR CAMPOS DEL FORMULARIO (Reseteo a None)
+    # Nota: No limpiamos País, Derecho ni Año para facilitar la carga en lote.
+    st.session_state["sel_agr"] = None
+    st.session_state["sel_cat"] = None
+    st.session_state["sel_ind"] = None
+    st.session_state["sel_des"] = None
+    st.session_state["sel_uni"] = None
+    st.session_state["input_val"] = ""
+    st.session_state["sel_fue"] = None
+    
+    st.session_state["feedback_msg"] = ("success", "✅ Registro agregado temporalmente.")
+
+
+# --- INTERFAZ PRINCIPAL ---
 st.markdown('<div class="sticky-header">', unsafe_allow_html=True)
 header_container = st.container()
 
@@ -336,16 +400,24 @@ else:
 # --- MÓDULO 1: CARGA DE DATOS ---
 if modo_app == T["nav_load"]:
     c_meta1, c_meta2, c_meta3 = st.columns(3)
+    
+    # IMPORTANTE: Asignamos keys para poder leer los valores en el callback
     with c_meta1:
-        # Index None para obligar a seleccionar (VACIO POR DEFECTO)
-        pais_sel = st.selectbox(T["meta_country"], list(MAPA_PAISES.keys()), index=None, placeholder="Seleccione un país...")
+        pais_sel = st.selectbox(T["meta_country"], list(MAPA_PAISES.keys()), index=None, placeholder="Seleccione un país...", key="meta_pais")
     with c_meta2:
-        der_sel = st.selectbox(T["meta_right"], list(MAPA_DERECHOS.keys()), index=None, placeholder="Seleccione un derecho...")
+        der_sel = st.selectbox(T["meta_right"], list(MAPA_DERECHOS.keys()), index=None, placeholder="Seleccione un derecho...", key="meta_der")
     with c_meta3:
-        anio_sel = st.selectbox(T["meta_year"], range(2000, 2031), index=None, placeholder="Seleccione año...")
+        anio_sel = st.selectbox(T["meta_year"], range(2000, 2031), index=None, placeholder="Seleccione año...", key="meta_anio")
     
     st.markdown("---")
     
+    # Manejo de mensajes de feedback del callback
+    if "feedback_msg" in st.session_state and st.session_state["feedback_msg"]:
+        tipo, msj = st.session_state["feedback_msg"]
+        if tipo == "error": st.error(msj)
+        elif tipo == "success": st.success(msj)
+        st.session_state["feedback_msg"] = None # Limpiar mensaje después de mostrar
+
     if "df_buffer" not in st.session_state: st.session_state.df_buffer = pd.DataFrame()
     
     with st.expander(T["manual_header"], expanded=True):
@@ -357,7 +429,7 @@ if modo_app == T["nav_load"]:
             else:
                 agrupamientos_disp = ["No hay datos cargados"]
             
-            # VACIO POR DEFECTO
+            # VACIO POR DEFECTO (index=None)
             m_agr = st.selectbox("Agrupamiento", agrupamientos_disp, key="sel_agr", index=None, placeholder="Seleccione agrupamiento...")
             
             categorias_disp = []
@@ -377,10 +449,8 @@ if modo_app == T["nav_load"]:
             
             if seleccion_ind and "[" in seleccion_ind:
                 ref_auto = seleccion_ind.split("]")[0].replace("[", "")
-                nombre_ind = seleccion_ind.split("] ")[1]
             else:
                 ref_auto = "000"
-                nombre_ind = seleccion_ind if seleccion_ind else ""
             
             st.info(f"📌 Referencia Asignada: **{ref_auto}**")
             st.markdown("---")
@@ -395,40 +465,8 @@ if modo_app == T["nav_load"]:
                 # VACIO POR DEFECTO
                 m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue", index=None, placeholder="Seleccione...")
             
-            if st.button(T["manual_btn"], type="primary", use_container_width=True):
-                # Validación estricta
-                if not pais_sel or not der_sel or not anio_sel or not seleccion_ind or not m_uni or not m_fue:
-                    st.error("⚠️ Faltan campos obligatorios (País, Derecho, Año, Indicador, Unidad o Fuente).")
-                else:
-                    with st.spinner("Agregando..."):
-                        new_row = {
-                            "DERECHO": der_sel, 
-                            "AGRUPAMIENTO": m_agr if m_agr else "",
-                            "CATEGORÍA": m_cat if m_cat else "", 
-                            "INDICADOR": nombre_ind, 
-                            "REF_INDICADOR": ref_auto, 
-                            "DESAGREGACIÓN": m_des if m_des else "", 
-                            "VALOR": m_val, 
-                            "UNIDAD": m_uni, 
-                            "AÑO": anio_sel, 
-                            "PAIS": pais_sel, # Capturamos el país seleccionado arriba
-                            "FUENTE": m_fue, 
-                            "ESTADO_DATO": "Manual"
-                        }
-                        st.session_state.df_buffer = pd.concat([st.session_state.df_buffer, pd.DataFrame([new_row])], ignore_index=True)
-                        
-                        # --- LIMPIEZA DE CASILLAS PARA NUEVO REGISTRO ---
-                        # Seteamos las claves del session_state a None o vacío
-                        st.session_state["sel_agr"] = None
-                        st.session_state["sel_cat"] = None
-                        st.session_state["sel_ind"] = None
-                        st.session_state["sel_des"] = None
-                        st.session_state["sel_uni"] = None
-                        st.session_state["input_val"] = ""
-                        st.session_state["sel_fue"] = None
-                        
-                        time.sleep(0.1)
-                        st.rerun()
+            # BOTÓN CON CALLBACK (Solución al error de Streamlit)
+            st.button(T["manual_btn"], type="primary", use_container_width=True, on_click=callback_agregar_registro)
 
     if not st.session_state.df_buffer.empty:
         df_work = st.session_state.df_buffer.copy()
@@ -436,7 +474,6 @@ if modo_app == T["nav_load"]:
         df_work["UID"] = df_work.apply(lambda r: generar_uid(r, pais_sel, anio_sel, der_sel), axis=1)
         
         # DEFINIMOS COLUMNAS PARA VISUALIZACIÓN EN LA APP
-        # Incluye PAIS en K, FUENTE en L, ESTADO en M
         cols_view = [
             "UID", "DERECHO", "AGRUPAMIENTO", "CATEGORÍA", "INDICADOR", 
             "REF_INDICADOR", "DESAGREGACIÓN", "VALOR", "UNIDAD", "AÑO", 
@@ -490,6 +527,7 @@ elif modo_app == T["nav_view"]:
             except: idx_anio = 0
             filtro_anio = st.selectbox("Filtrar por Año (Dashboard)", opciones_anio, index=idx_anio)
         
+        # Filtrado para el Dashboard
         if not df_historico.empty:
             df_base = df_historico.copy()
             if filtro_pais in MAPA_PAISES:
@@ -505,6 +543,7 @@ elif modo_app == T["nav_view"]:
             df_show_kpi = pd.DataFrame()
             df_show_context = pd.DataFrame()
 
+        # KPIs y Donuts
         indicadores_cargados = df_show_kpi["REF_INDICADOR"].nunique() if not df_show_kpi.empty else 0
         cargados_cat = {"Estructurales": 0, "Procesos": 0, "Resultados": 0}
         if not df_show_kpi.empty and "CATEGORÍA" in df_show_kpi.columns:
@@ -539,6 +578,7 @@ elif modo_app == T["nav_view"]:
 
         st.divider()
 
+        # Comparativo Bar Chart
         st.markdown(f"<h3 style='color:{text_color}'><b>{T['dash_chart_bar']}</b></h3>", unsafe_allow_html=True)
         
         indicadores_disponibles = sorted(df_show_context["INDICADOR"].unique()) if not df_show_context.empty else []
