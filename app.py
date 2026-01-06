@@ -107,7 +107,7 @@ def conectar_google_sheet():
 def guardar_en_sheet(df):
     ws = conectar_google_sheet()
     if ws:
-        # --- DEFINICIÓN DE COLUMNAS (A-M) ---
+        # --- DEFINICIÓN DE COLUMNAS (A-N) ---
         # Orden estricto solicitado:
         cols_finales = [
             "UID",              # A
@@ -120,9 +120,10 @@ def guardar_en_sheet(df):
             "VALOR",            # H
             "UNIDAD",           # I
             "AÑO",              # J
-            "PAIS",             # K (País seleccionado arriba)
+            "PAIS",             # K 
             "FUENTE",           # L
-            "ESTADO_DATO"       # M
+            "ESTADO_DATO",      # M
+            "NOTA"              # N (Nueva columna)
         ]
         # Reordenamos y rellenamos vacíos para evitar errores
         df_ordenado = df.reindex(columns=cols_finales).fillna("")
@@ -134,13 +135,19 @@ def cargar_datos_sheet():
         data = ws.get_all_records()
         df = pd.DataFrame(data)
         
-        # --- PARCHE DE SEGURIDAD ECLÍPTICA ---
+        # --- PARCHE DE SEGURIDAD ECLÍPTICA (V55) ---
         if not df.empty:
             # 1. Normalizamos los nombres de las columnas (Mayúsculas y sin espacios)
             df.columns = df.columns.str.strip().str.upper()
             
-            # 2. Validación extra: Si por alguna razón la columna no existe, la creamos vacía
-            # para que el dashboard no se rompa (Fail-safe)
+            # 2. RENOMBRADO INTELIGENTE: Mapeamos nombres viejos a nuevos
+            mapa_columnas = {
+                "REFERENCIA_ASIGNADA": "REF_INDICADOR",  
+                "CATEGORIA": "CATEGORÍA"                 
+            }
+            df.rename(columns=mapa_columnas, inplace=True)
+            
+            # 3. Validación extra: Si falta alguna columna crítica, la creamos vacía
             cols_criticas = ["REF_INDICADOR", "CATEGORÍA", "DERECHO", "AÑO", "INDICADOR", "VALOR"]
             for col in cols_criticas:
                 if col not in df.columns:
@@ -406,7 +413,15 @@ if modo_app == T["nav_load"]:
                 m_des = st.selectbox("Desagregación", LISTA_DESAGREGACION, key="sel_des", index=None, placeholder="Seleccione...")
                 m_uni = st.selectbox("Unidad", LISTA_UNIDADES, key="sel_uni", index=None, placeholder="Seleccione...")
             with c2:
-                m_val = st.text_input("Valor", key="input_val")
+                # --- AQUÍ LA MAGIA: Dividimos para poner Valor y Nota lado a lado (V55) ---
+                sc1, sc2 = st.columns(2)
+                with sc1:
+                    m_val = st.text_input("Valor", key="input_val")
+                with sc2:
+                    # Lista desplegable nueva
+                    opciones_nota = ["No Aplica", "Señal de Progreso", "Principio Transversal", "Ambos"]
+                    m_nota = st.selectbox("Nota", opciones_nota, key="sel_nota", index=0)
+
                 # VACIO POR DEFECTO
                 m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue", index=None, placeholder="Seleccione...")
             
@@ -428,7 +443,8 @@ if modo_app == T["nav_load"]:
                             "AÑO": anio_sel, 
                             "PAIS": pais_sel, # Capturamos el país seleccionado arriba
                             "FUENTE": m_fue, 
-                            "ESTADO_DATO": "Manual"
+                            "ESTADO_DATO": "Manual",
+                            "NOTA": m_nota # <--- V55: AGREGAR ESTO AQUÍ
                         }
                         st.session_state.df_buffer = pd.concat([st.session_state.df_buffer, pd.DataFrame([new_row])], ignore_index=True)
                         time.sleep(0.1)
@@ -440,10 +456,10 @@ if modo_app == T["nav_load"]:
         df_work["UID"] = df_work.apply(lambda r: generar_uid(r, pais_sel, anio_sel, der_sel), axis=1)
         
         # DEFINIMOS COLUMNAS PARA VISUALIZACIÓN EN LA APP
-        # Incluye PAIS en K, FUENTE en L, ESTADO en M
+        # Incluye PAIS en K, FUENTE en L, ESTADO en M, NOTA en N
         cols_view = [
             "UID", "DERECHO", "AGRUPAMIENTO", "CATEGORÍA", "INDICADOR", 
-            "REF_INDICADOR", "DESAGREGACIÓN", "VALOR", "UNIDAD", "AÑO", 
+            "REF_INDICADOR", "DESAGREGACIÓN", "VALOR", "NOTA", "UNIDAD", "AÑO", 
             "PAIS", "FUENTE", "ESTADO_DATO"
         ]
         
@@ -589,4 +605,3 @@ elif modo_app == T["nav_view"]:
             
     except Exception as e:
         st.error(f"Error en el Dashboard: {e}")
-
