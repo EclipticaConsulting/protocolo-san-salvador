@@ -419,7 +419,7 @@ if modo_app == T["nav_load"]:
                     m_val = st.text_input("Valor", key="input_val")
                 with sc2:
                     # Lista desplegable nueva
-                    opciones_nota = ["Incompleto", "Señal de Progreso", "Principio Transversal", "Ambos", "No Aplica"]
+                    opciones_nota = ["No Aplica", "Señal de Progreso", "Principio Transversal", "Ambos", "Incompleto"]
                     m_nota = st.selectbox("Nota", opciones_nota, key="sel_nota", index=0)
 
                 # VACIO POR DEFECTO
@@ -605,4 +605,5 @@ elif modo_app == T["nav_view"]:
             
     except Exception as e:
         st.error(f"Error en el Dashboard: {e}")
+
 
