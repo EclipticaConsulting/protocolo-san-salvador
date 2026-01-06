@@ -108,7 +108,6 @@ def guardar_en_sheet(df):
     ws = conectar_google_sheet()
     if ws:
         # --- DEFINICIÓN DE COLUMNAS (A-N) ---
-        # Orden estricto solicitado:
         cols_finales = [
             "UID",              # A
             "DERECHO",          # B
@@ -123,9 +122,8 @@ def guardar_en_sheet(df):
             "PAIS",             # K 
             "FUENTE",           # L
             "ESTADO_DATO",      # M
-            "NOTA"              # N (Nueva columna)
+            "NOTA"              # N
         ]
-        # Reordenamos y rellenamos vacíos para evitar errores
         df_ordenado = df.reindex(columns=cols_finales).fillna("")
         ws.append_rows(df_ordenado.values.tolist())
 
@@ -135,23 +133,19 @@ def cargar_datos_sheet():
         data = ws.get_all_records()
         df = pd.DataFrame(data)
         
-        # --- PARCHE DE SEGURIDAD ECLÍPTICA (V55) ---
+        # --- PARCHE DE SEGURIDAD ECLÍPTICA ---
         if not df.empty:
-            # 1. Normalizamos los nombres de las columnas (Mayúsculas y sin espacios)
             df.columns = df.columns.str.strip().str.upper()
-            
-            # 2. RENOMBRADO INTELIGENTE: Mapeamos nombres viejos a nuevos
             mapa_columnas = {
                 "REFERENCIA_ASIGNADA": "REF_INDICADOR",  
                 "CATEGORIA": "CATEGORÍA"                 
             }
             df.rename(columns=mapa_columnas, inplace=True)
             
-            # 3. Validación extra: Si falta alguna columna crítica, la creamos vacía
             cols_criticas = ["REF_INDICADOR", "CATEGORÍA", "DERECHO", "AÑO", "INDICADOR", "VALOR"]
             for col in cols_criticas:
                 if col not in df.columns:
-                    df[col] = "" # Rellenar con vacío para evitar KeyError
+                    df[col] = "" 
                     
         return df
     return pd.DataFrame()
@@ -237,7 +231,6 @@ st.markdown("---")
 
 img_base64 = get_base64_image("watermark_protocolo.png")
 
-# CSS para Dark/Light Mode
 if dark_mode:
     st.markdown(f"""
     <style>
@@ -359,7 +352,6 @@ else:
 if modo_app == T["nav_load"]:
     c_meta1, c_meta2, c_meta3 = st.columns(3)
     with c_meta1:
-        # Index None para obligar a seleccionar (VACIO POR DEFECTO)
         pais_sel = st.selectbox(T["meta_country"], list(MAPA_PAISES.keys()), index=None, placeholder="Seleccione un país...")
     with c_meta2:
         der_sel = st.selectbox(T["meta_right"], list(MAPA_DERECHOS.keys()), index=None, placeholder="Seleccione un derecho...")
@@ -378,15 +370,11 @@ if modo_app == T["nav_load"]:
                 agrupamientos_disp = list(CATALOGO_INDICADORES[der_sel].keys())
             else:
                 agrupamientos_disp = ["No hay datos cargados"]
-            
-            # VACIO POR DEFECTO
             m_agr = st.selectbox("Agrupamiento", agrupamientos_disp, key="sel_agr", index=None, placeholder="Seleccione agrupamiento...")
             
             categorias_disp = []
             if der_sel in CATALOGO_INDICADORES and m_agr and m_agr in CATALOGO_INDICADORES[der_sel]:
                 categorias_disp = list(CATALOGO_INDICADORES[der_sel][m_agr].keys())
-            
-            # VACIO POR DEFECTO
             m_cat = st.selectbox("Categoría", categorias_disp if categorias_disp else ["Estructural", "Proceso", "Resultado"], key="sel_cat", index=None, placeholder="Seleccione categoría...")
             
             indicadores_obj = []
@@ -394,7 +382,6 @@ if modo_app == T["nav_load"]:
                 indicadores_obj = CATALOGO_INDICADORES[der_sel][m_agr][m_cat]
             
             opciones_ind = [f"[{x[0]}] {x[1]}" for x in indicadores_obj]
-            # VACIO POR DEFECTO
             seleccion_ind = st.selectbox("Indicador", opciones_ind if opciones_ind else ["Otro / Personalizado"], key="sel_ind", index=None, placeholder="Seleccione indicador...")
             
             if seleccion_ind and "[" in seleccion_ind:
@@ -409,24 +396,20 @@ if modo_app == T["nav_load"]:
             
             c1, c2 = st.columns(2)
             with c1:
-                # VACIO POR DEFECTO
                 m_des = st.selectbox("Desagregación", LISTA_DESAGREGACION, key="sel_des", index=None, placeholder="Seleccione...")
                 m_uni = st.selectbox("Unidad", LISTA_UNIDADES, key="sel_uni", index=None, placeholder="Seleccione...")
             with c2:
-                # --- AQUÍ LA MAGIA: Dividimos para poner Valor y Nota lado a lado (V55) ---
                 sc1, sc2 = st.columns(2)
                 with sc1:
                     m_val = st.text_input("Valor", key="input_val")
                 with sc2:
-                    # Lista desplegable nueva
+                    # Agregamos "Incompleto" a las opciones
                     opciones_nota = ["No Aplica", "Señal de Progreso", "Principio Transversal", "Ambos", "Incompleto"]
                     m_nota = st.selectbox("Nota", opciones_nota, key="sel_nota", index=0)
 
-                # VACIO POR DEFECTO
                 m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue", index=None, placeholder="Seleccione...")
             
             if st.button(T["manual_btn"], type="primary", use_container_width=True):
-                # Validación estricta
                 if not pais_sel or not der_sel or not anio_sel or not seleccion_ind or not m_uni or not m_fue:
                     st.error("⚠️ Faltan campos obligatorios (País, Derecho, Año, Indicador, Unidad o Fuente).")
                 else:
@@ -441,10 +424,10 @@ if modo_app == T["nav_load"]:
                             "VALOR": m_val, 
                             "UNIDAD": m_uni, 
                             "AÑO": anio_sel, 
-                            "PAIS": pais_sel, # Capturamos el país seleccionado arriba
+                            "PAIS": pais_sel, 
                             "FUENTE": m_fue, 
                             "ESTADO_DATO": "Manual",
-                            "NOTA": m_nota # <--- V55: AGREGAR ESTO AQUÍ
+                            "NOTA": m_nota 
                         }
                         st.session_state.df_buffer = pd.concat([st.session_state.df_buffer, pd.DataFrame([new_row])], ignore_index=True)
                         time.sleep(0.1)
@@ -452,11 +435,8 @@ if modo_app == T["nav_load"]:
 
     if not st.session_state.df_buffer.empty:
         df_work = st.session_state.df_buffer.copy()
-        # Generar UID dinámico
         df_work["UID"] = df_work.apply(lambda r: generar_uid(r, pais_sel, anio_sel, der_sel), axis=1)
         
-        # DEFINIMOS COLUMNAS PARA VISUALIZACIÓN EN LA APP
-        # Incluye PAIS en K, FUENTE en L, ESTADO en M, NOTA en N
         cols_view = [
             "UID", "DERECHO", "AGRUPAMIENTO", "CATEGORÍA", "INDICADOR", 
             "REF_INDICADOR", "DESAGREGACIÓN", "VALOR", "NOTA", "UNIDAD", "AÑO", 
@@ -474,7 +454,6 @@ if modo_app == T["nav_load"]:
         with cb1:
             if st.button(T["btn_save"], type="secondary", use_container_width=True):
                 try:
-                    # Llama a la función blindada con el orden correcto
                     guardar_en_sheet(df_fin)
                     st.toast(T["toast_save"], icon="🎉"); st.balloons(); st.session_state.df_buffer = pd.DataFrame(); st.rerun()
                 except Exception as e: st.error(str(e))
@@ -513,6 +492,11 @@ elif modo_app == T["nav_view"]:
         # Filtrado para el Dashboard
         if not df_historico.empty:
             df_base = df_historico.copy()
+            
+            # --- FILTRO NUEVO: Excluir "Incompleto" (V56) ---
+            if "NOTA" in df_base.columns:
+                df_base = df_base[df_base["NOTA"].astype(str) != "Incompleto"]
+            
             if filtro_pais in MAPA_PAISES:
                 code_pais = MAPA_PAISES[filtro_pais]
                 df_base = df_base[df_base["UID"].astype(str).str.startswith(code_pais)]
@@ -605,5 +589,4 @@ elif modo_app == T["nav_view"]:
             
     except Exception as e:
         st.error(f"Error en el Dashboard: {e}")
-
 
