@@ -132,7 +132,21 @@ def cargar_datos_sheet():
     ws = conectar_google_sheet()
     if ws:
         data = ws.get_all_records()
-        return pd.DataFrame(data)
+        df = pd.DataFrame(data)
+        
+        # --- PARCHE DE SEGURIDAD ECLÍPTICA ---
+        if not df.empty:
+            # 1. Normalizamos los nombres de las columnas (Mayúsculas y sin espacios)
+            df.columns = df.columns.str.strip().str.upper()
+            
+            # 2. Validación extra: Si por alguna razón la columna no existe, la creamos vacía
+            # para que el dashboard no se rompa (Fail-safe)
+            cols_criticas = ["REF_INDICADOR", "CATEGORÍA", "DERECHO", "AÑO", "INDICADOR", "VALOR"]
+            for col in cols_criticas:
+                if col not in df.columns:
+                    df[col] = "" # Rellenar con vacío para evitar KeyError
+                    
+        return df
     return pd.DataFrame()
 
 def calcular_metas_catalogo(derecho_filtro=None):
@@ -575,3 +589,4 @@ elif modo_app == T["nav_view"]:
             
     except Exception as e:
         st.error(f"Error en el Dashboard: {e}")
+
