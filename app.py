@@ -8,6 +8,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import time
 import base64
+import re
 
 # --- IMPORTACIÓN DE DATOS ---
 try:
@@ -193,6 +194,35 @@ def crear_donut(valor, meta, color_fill, color_empty, titulo_centro, text_color)
         height=280
     )
     return fig
+
+# --- NUEVA LÓGICA: Normalización de Datos ---
+def normalizar_valor(valor_str):
+    """
+    Intenta convertir el valor a numérico para graficar.
+    Maneja % y Si/No.
+    Retorna: (valor_numerico, texto_formateado, es_valido)
+    """
+    v_limpio = str(valor_str).strip().lower()
+    
+    # 1. Caso Binario (Sí/No)
+    if v_limpio in ["si", "sí", "yes", "cumple"]:
+        return 100, "SÍ", True
+    if v_limpio in ["no", "no cumple"]:
+        return 0, "NO", True # Graficamos 0 o una pequeña barra base
+        
+    # 2. Caso Vacío/Otro explícito
+    if not v_limpio or v_limpio in ["otro", "nan", "none", "incompleto", "."]:
+        return 0, "Sin Dato", False
+        
+    # 3. Caso Numérico / Porcentaje
+    try:
+        # Remover caracteres no numéricos excepto puntos y comas
+        v_num = re.sub(r'[^\d.,]', '', v_limpio)
+        v_num = v_num.replace(",", ".") # Estandarizar decimales
+        float_val = float(v_num)
+        return float_val, str(valor_str), True
+    except:
+        return 0, str(valor_str), False # Es texto puro (ej: "Ver anexo")
 
 # --- INTERFAZ ---
 st.markdown('<div class="sticky-header">', unsafe_allow_html=True)
@@ -562,61 +592,76 @@ elif modo_app == T["nav_view"]:
             
             sel_anios_comp = st.multiselect("Seleccione Años", full_years_list, default=anios_con_datos)
 
-        # --- LÓGICA DE RENDERIZADO ---
+        # --- LÓGICA DE RENDERIZADO HORIZONTAL (Opción B) ---
         if sel_ind_comp and sel_anios_comp:
-            # 1. Filtramos primero
+            # 1. Filtro
             df_chart = df_show_context[
                 (df_show_context["INDICADOR"] == sel_ind_comp) & 
                 (df_show_context["AÑO"].astype(str).isin(sel_anios_comp))
             ].copy()
             
-            # 2. Verificamos si quedó algo (Manejo de Vacíos)
-            if df_chart.empty:
-                st.warning(f"⚠️ No se encontró información registrada para el indicador seleccionado en los años: {', '.join(sel_anios_comp)}.")
-            else:
-                # Preparación de datos
-                df_chart.sort_values("AÑO", ascending=True, inplace=True)
-                df_chart["AÑO"] = df_chart["AÑO"].astype(str) # Forzamos a string para que el eje sea categórico
+            # 2. Ordenar por año descendente para que en gráfica horizontal quede 2024 arriba (o viceversa según preferencia)
+            df_chart.sort_values("AÑO", ascending=True, inplace=True)
+            df_chart["AÑO"] = df_chart["AÑO"].astype(str)
 
-                # Definición de Colores (Corrección de Contraste)
-                # Si es Dark Mode -> Texto Blanco (#F2F2F2)
-                # Si es Light Mode -> Texto Azul Eclíptica (#011936) para máximo contraste
+            # 3. Lógica de "Limpieza de Fantasmas" (Otro vs Real)
+            # Primero normalizamos los valores
+            resultados_norm = df_chart["VALOR"].apply(normalizar_valor)
+            df_chart["VAL_NUM"] = [x[0] for x in resultados_norm]
+            df_chart["VAL_TXT"] = [x[1] for x in resultados_norm]
+            df_chart["ES_VALIDO"] = [x[2] for x in resultados_norm]
+
+            # REGLA: Si TODOS los registros de la selección son "No Validos" (Otro/Incompleto) -> Alerta
+            if not df_chart["ES_VALIDO"].any():
+                st.warning(f"⚠️ Alerta de Datos Insuficientes: Para los años seleccionados, el indicador '{sel_ind_comp}' no presenta datos estructurados (aparece como 'Otro', 'Vacío' o 'Incompleto').")
+            else:
+                # Si hay mezcla, el gráfico se genera priorizando los datos válidos.
+                # Colores basados en Semáforo Binario (Propuesta Visual)
+                # Amarillo Eclíptica (#9D8420) para valores altos/positivos, Rojo para bajos/no
+                
+                colores = []
+                for val in df_chart["VAL_NUM"]:
+                    if val > 50: colores.append("#F2C94C") # Amarillo Oro (Sí / Alto)
+                    else: colores.append("#EB5757")        # Rojo (No / Bajo)
+
+                fig_bar = go.Figure()
+
+                # Barras Horizontales
+                fig_bar.add_trace(go.Bar(
+                    y=df_chart["AÑO"],
+                    x=df_chart["VAL_NUM"],
+                    text=df_chart["VAL_TXT"],
+                    textposition='auto',
+                    orientation='h',
+                    marker_color=colores,
+                    name=sel_ind_comp
+                ))
+
+                # Ajustes de Diseño
                 chart_text_color = "#F2F2F2" if dark_mode else "#011936"
                 
-                # Paleta de barras
-                color_seq = ["#FFCDD2", "#EF9A9A", "#E57373", "#EF5350", "#F44336"] if not dark_mode else px.colors.qualitative.Plotly
-
-                # Construcción del Gráfico
-                fig_bar = px.bar(
-                    df_chart, 
-                    y="AÑO", 
-                    x="VALOR", 
-                    orientation='h', 
-                    text="VALOR", 
-                    color="AÑO", 
-                    title=f"<b>{sel_ind_comp}</b>", 
-                    color_discrete_sequence=color_seq
-                )
-                
-                fig_bar.update_traces(textposition='outside') # Pone el valor fuera de la barra para mejor lectura
-
                 fig_bar.update_layout(
-                    paper_bgcolor='rgba(0,0,0,0)', 
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    font=dict(color=chart_text_color, family="Arial"), # APLICAMOS EL COLOR CORREGIDO AQUÍ
-                    title_font=dict(color=chart_text_color, size=20, family="Arial Black"), 
-                    showlegend=False, 
-                    xaxis_title=dict(text="<b>Valor Registrado</b>", font=dict(color=chart_text_color)),
-                    yaxis_title=dict(text="<b>Año</b>", font=dict(color=chart_text_color)),
-                    yaxis=dict(
-                        type='category', # CLAVE: Esto fuerza a que solo muestre las categorías presentes (los años seleccionados)
-                        tickmode='linear',
-                        tickfont=dict(color=chart_text_color)
-                    ),
+                    title=dict(text=f"<b>{sel_ind_comp}</b>", font=dict(size=18, color=chart_text_color)),
                     xaxis=dict(
-                        tickfont=dict(color=chart_text_color)
-                    )
+                        title="Valor / Progreso (%)", 
+                        range=[0, 105], # Damos un poco de aire al 100%
+                        showgrid=True, 
+                        gridcolor='rgba(128,128,128,0.2)',
+                        tickfont=dict(color=chart_text_color),
+                        title_font=dict(color=chart_text_color)
+                    ),
+                    yaxis=dict(
+                        title="",
+                        tickfont=dict(size=14, color=chart_text_color, family="Arial Black"),
+                        type='category' # Asegura que se vean todos los años como etiquetas
+                    ),
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    showlegend=False,
+                    height=200 + (len(sel_anios_comp) * 40), # Altura dinámica según cant. años
+                    margin=dict(l=20, r=20, t=50, b=20)
                 )
+
                 st.plotly_chart(fig_bar, use_container_width=True)
         
         elif not sel_ind_comp:
@@ -628,7 +673,5 @@ elif modo_app == T["nav_view"]:
         with st.expander(T["dash_expander_table"]):
             st.dataframe(df_show_context, use_container_width=True, height=600)
             
-    except Exception as e:  # <--- AGREGA ESTO
-        st.error(f"Error en el Dashboard: {e}") # <--- Y ESTO
-
-
+    except Exception as e:
+        st.error(f"Error en el Dashboard: {e}")
