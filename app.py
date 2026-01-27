@@ -593,77 +593,82 @@ elif modo_app == T["nav_view"]:
             sel_anios_comp = st.multiselect("Seleccione Años", full_years_list, default=anios_con_datos)
 
         # --- LÓGICA DE RENDERIZADO HORIZONTAL (Opción B) ---
-        if sel_ind_comp and sel_anios_comp:
+       if sel_ind_comp and sel_anios_comp:
             # 1. Filtro
             df_chart = df_show_context[
                 (df_show_context["INDICADOR"] == sel_ind_comp) & 
                 (df_show_context["AÑO"].astype(str).isin(sel_anios_comp))
             ].copy()
             
-            # 2. Ordenar por año descendente para que en gráfica horizontal quede 2024 arriba (o viceversa según preferencia)
+            # Ordenamos por año para que aparezcan en orden cronológico izquierda-derecha
             df_chart.sort_values("AÑO", ascending=True, inplace=True)
-            df_chart["AÑO"] = df_chart["AÑO"].astype(str)
-
-            # 3. Lógica de "Limpieza de Fantasmas" (Otro vs Real)
-            # Primero normalizamos los valores
+            
+            # 2. Normalización de valores (Tu lógica de limpieza)
             resultados_norm = df_chart["VALOR"].apply(normalizar_valor)
             df_chart["VAL_NUM"] = [x[0] for x in resultados_norm]
             df_chart["VAL_TXT"] = [x[1] for x in resultados_norm]
             df_chart["ES_VALIDO"] = [x[2] for x in resultados_norm]
 
-            # REGLA: Si TODOS los registros de la selección son "No Validos" (Otro/Incompleto) -> Alerta
+            # 3. Validación de datos fantasmas
             if not df_chart["ES_VALIDO"].any():
-                st.warning(f"⚠️ Alerta de Datos Insuficientes: Para los años seleccionados, el indicador '{sel_ind_comp}' no presenta datos estructurados (aparece como 'Otro', 'Vacío' o 'Incompleto').")
+                st.warning(f"⚠️ Alerta: El indicador '{sel_ind_comp}' no tiene datos válidos en los años seleccionados.")
             else:
-                # Si hay mezcla, el gráfico se genera priorizando los datos válidos.
-                # Colores basados en Semáforo Binario (Propuesta Visual)
-                # Amarillo Eclíptica (#9D8420) para valores altos/positivos, Rojo para bajos/no
+                # Título del Indicador Centrado
+                st.markdown(f"<h4 style='text-align:center; color:{text_color}; margin-bottom:20px;'><b>{sel_ind_comp}</b></h4>", unsafe_allow_html=True)
                 
-                colores = []
-                for val in df_chart["VAL_NUM"]:
-                    if val > 50: colores.append("#F2C94C") # Amarillo Oro (Sí / Alto)
-                    else: colores.append("#EB5757")        # Rojo (No / Bajo)
-
-                fig_bar = go.Figure()
-
-                # Barras Horizontales
-                fig_bar.add_trace(go.Bar(
-                    y=df_chart["AÑO"],
-                    x=df_chart["VAL_NUM"],
-                    text=df_chart["VAL_TXT"],
-                    textposition='auto',
-                    orientation='h',
-                    marker_color=colores,
-                    name=sel_ind_comp
-                ))
-
-                # Ajustes de Diseño
-                chart_text_color = "#F2F2F2" if dark_mode else "#011936"
+                # --- GRILLA DE ANILLOS ---
+                # Creamos tantas columnas como años seleccionados
+                cols = st.columns(len(sel_anios_comp))
                 
-                fig_bar.update_layout(
-                    title=dict(text=f"<b>{sel_ind_comp}</b>", font=dict(size=18, color=chart_text_color)),
-                    xaxis=dict(
-                        title="Valor / Progreso (%)", 
-                        range=[0, 105], # Damos un poco de aire al 100%
-                        showgrid=True, 
-                        gridcolor='rgba(128,128,128,0.2)',
-                        tickfont=dict(color=chart_text_color),
-                        title_font=dict(color=chart_text_color)
-                    ),
-                    yaxis=dict(
-                        title="",
-                        tickfont=dict(size=14, color=chart_text_color, family="Arial Black"),
-                        type='category' # Asegura que se vean todos los años como etiquetas
-                    ),
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    showlegend=False,
-                    height=200 + (len(sel_anios_comp) * 40), # Altura dinámica según cant. años
-                    margin=dict(l=20, r=20, t=50, b=20)
-                )
+                for i, (idx, row) in enumerate(df_chart.iterrows()):
+                    anio = str(row["AÑO"])
+                    val_num = row["VAL_NUM"]
+                    val_txt = row["VAL_TXT"]
+                    
+                    # Lógica de Color (Semáforo Eclíptica)
+                    # Verde Éxito (#27AE60) / Rojo Alerta (#EB5757) / Amarillo Progreso (#F2C94C)
+                    if val_num >= 100 or str(val_txt).lower() in ["si", "sí", "cumple"]:
+                         color_anillo = "#27AE60" # Verde
+                    elif val_num >= 50:
+                         color_anillo = "#F2C94C" # Amarillo
+                    else:
+                         color_anillo = "#EB5757" # Rojo
+                    
+                    # Cálculo del "gris" restante para el efecto de anillo
+                    val_restante = 100 - val_num if val_num <= 100 else 0
+                    
+                    # Renderizamos en la columna correspondiente
+                    with cols[i]:
+                        # Título del Año arriba del anillo
+                        st.markdown(f"<p style='text-align:center; font-weight:bold; font-size:18px; color:{text_color}; margin:0;'>{anio}</p>", unsafe_allow_html=True)
+                        
+                        fig_donut = go.Figure(data=[go.Pie(
+                            labels=['Logrado', 'Restante'],
+                            values=[val_num, val_restante],
+                            hole=.75, # Tamaño del agujero central
+                            marker=dict(colors=[color_anillo, "rgba(128,128,128,0.2)"]), # Color vs Fondo gris transparente
+                            textinfo='none',
+                            sort=False,
+                            hoverinfo='label+value'
+                        )])
+                        
+                        # Texto central (El valor: "85%" o "SÍ")
+                        fig_donut.update_layout(
+                            showlegend=False,
+                            annotations=[dict(
+                                text=f"<b>{val_txt}</b>", 
+                                x=0.5, y=0.5, 
+                                font_size=24, 
+                                showarrow=False, 
+                                font=dict(color=text_color, family="Arial Black")
+                            )],
+                            margin=dict(t=10, b=10, l=10, r=10),
+                            height=220, # Altura fija para alineación
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(0,0,0,0)'
+                        )
+                        st.plotly_chart(fig_donut, use_container_width=True)
 
-                st.plotly_chart(fig_bar, use_container_width=True)
-        
         elif not sel_ind_comp:
             st.info("👈 Seleccione un indicador arriba para comenzar el análisis.")
         else:
@@ -675,3 +680,4 @@ elif modo_app == T["nav_view"]:
             
     except Exception as e:
         st.error(f"Error en el Dashboard: {e}")
+
