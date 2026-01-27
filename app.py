@@ -424,18 +424,30 @@ if modo_app == T["nav_load"]:
             st.info(f"📌 Referencia Asignada: **{ref_auto}**")
             st.markdown("---")
             
-            c1, c2 = st.columns(2)
+            # --- AQUÍ ESTÁ EL CAMBIO DE DISEÑO ---
+            c1, c2 = st.columns([1, 1.5]) # Damos un poco más de espacio a la derecha
+            
             with c1:
                 m_des = st.selectbox("Desagregación", LISTA_DESAGREGACION, key="sel_des", index=None, placeholder="Seleccione...")
                 m_uni = st.selectbox("Unidad", LISTA_UNIDADES, key="sel_uni", index=None, placeholder="Seleccione...")
+            
             with c2:
-                sc1, sc2 = st.columns(2)
+                # Sub-dividimos la columna derecha para poner Valor | Checks | Nota
+                sc1, sc2, sc3 = st.columns([1.2, 1.5, 1.3])
+                
                 with sc1:
                     m_val = st.text_input("Valor", key="input_val")
+                
                 with sc2:
-                    # Agregamos "Incompleto" a las opciones
-                    opciones_nota = ["No Aplica", "Señal de Progreso", "Principio Transversal", "Ambos", "Incompleto"]
-                    m_nota = st.selectbox("Nota", opciones_nota, key="sel_nota", index=0)
+                    st.markdown("<label style='font-size:12px; color:#F2F2F2;'>Atributos</label>", unsafe_allow_html=True)
+                    # Checkboxes (TRUE/FALSE)
+                    chk_progreso = st.checkbox("Señal de Progreso", key="chk_prog")
+                    chk_transversal = st.checkbox("Principio Transversal", key="chk_tran")
+                
+                with sc3:
+                    # Lista desplegable de NOTA limpia
+                    opciones_calidad = ["", "NO INFO", "INFO AMBIGUA", "NO APLICA"]
+                    m_calidad = st.selectbox("Estado / Nota", opciones_calidad, key="sel_calidad")
 
                 m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue", index=None, placeholder="Seleccione...")
             
@@ -444,6 +456,22 @@ if modo_app == T["nav_load"]:
                     st.error("⚠️ Faltan campos obligatorios (País, Derecho, Año, Indicador, Unidad o Fuente).")
                 else:
                     with st.spinner("Agregando..."):
+                        # --- LÓGICA DE CONSTRUCCIÓN DE LA NOTA FINAL ---
+                        # Concatenamos la selección del dropdown con los checkboxes
+                        # Formato resultante: "NO INFO | Señal de Progreso, Principio Transversal"
+                        
+                        partes_nota = []
+                        if m_calidad: partes_nota.append(m_calidad)
+                        
+                        atributos = []
+                        if chk_progreso: atributos.append("Señal de Progreso")
+                        if chk_transversal: atributos.append("Principio Transversal")
+                        
+                        if atributos:
+                            partes_nota.append(", ".join(atributos))
+                            
+                        nota_final = " | ".join(partes_nota) if partes_nota else ""
+
                         new_row = {
                             "DERECHO": der_sel, 
                             "AGRUPAMIENTO": m_agr if m_agr else "",
@@ -457,7 +485,7 @@ if modo_app == T["nav_load"]:
                             "PAIS": pais_sel, 
                             "FUENTE": m_fue, 
                             "ESTADO_DATO": "Manual",
-                            "NOTA": m_nota 
+                            "NOTA": nota_final # Guardamos la combinación aquí
                         }
                         st.session_state.df_buffer = pd.concat([st.session_state.df_buffer, pd.DataFrame([new_row])], ignore_index=True)
                         time.sleep(0.1)
@@ -693,3 +721,4 @@ elif modo_app == T["nav_view"]:
             
     except Exception as e:
         st.error(f"Error en el Dashboard: {e}")
+
