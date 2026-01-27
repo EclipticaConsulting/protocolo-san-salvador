@@ -523,7 +523,7 @@ elif modo_app == T["nav_view"]:
         if not df_historico.empty:
             df_base = df_historico.copy()
             
-            # --- FILTRO NUEVO: Excluir "Incompleto" (V56) ---
+            # --- FILTRO NUEVO: Excluir "Incompleto" ---
             if "NOTA" in df_base.columns:
                 df_base = df_base[df_base["NOTA"].astype(str) != "Incompleto"]
             
@@ -533,7 +533,16 @@ elif modo_app == T["nav_view"]:
             
             if filtro_derecho != "Todos":
                 df_base = df_base[df_base["DERECHO"] == filtro_derecho]
-                
+            
+            # --- CREACIÓN DE LA LLAVE DE VISUALIZACIÓN [CÓDIGO] NOMBRE ---
+            # Esto es lo nuevo: Combinamos REF e INDICADOR para el dropdown
+            if "REF_INDICADOR" in df_base.columns and "INDICADOR" in df_base.columns:
+                df_base["DISPLAY_TEXT"] = df_base.apply(
+                    lambda x: f"[{str(x['REF_INDICADOR']).strip()}] {str(x['INDICADOR']).strip()}", axis=1
+                )
+            else:
+                df_base["DISPLAY_TEXT"] = df_base["INDICADOR"]
+
             df_show_context = df_base.copy()
             df_show_kpi = df_base[df_base["AÑO"].astype(str) == filtro_anio]
         else:
@@ -578,7 +587,8 @@ elif modo_app == T["nav_view"]:
         # Comparativo con ANILLOS (Ring Charts)
         st.markdown(f"<h3 style='color:{text_color}'><b>{T['dash_chart_bar']}</b></h3>", unsafe_allow_html=True)
         
-        indicadores_disponibles = sorted(df_show_context["INDICADOR"].unique()) if not df_show_context.empty else []
+        # AQUI USAMOS EL NUEVO CAMPO 'DISPLAY_TEXT' PARA LA LISTA
+        indicadores_disponibles = sorted(df_show_context["DISPLAY_TEXT"].unique()) if not df_show_context.empty else []
             
         c_ana1, c_ana2 = st.columns([2, 1])
         with c_ana1:
@@ -587,22 +597,22 @@ elif modo_app == T["nav_view"]:
             full_years_list = [str(x) for x in range(2000, 2031)]
             anios_con_datos = []
             if sel_ind_comp and not df_show_context.empty:
-                 anios_con_datos = sorted(df_show_context[df_show_context["INDICADOR"] == sel_ind_comp]["AÑO"].unique().astype(str))
+                 # Filtramos usando DISPLAY_TEXT
+                 anios_con_datos = sorted(df_show_context[df_show_context["DISPLAY_TEXT"] == sel_ind_comp]["AÑO"].unique().astype(str))
             
             sel_anios_comp = st.multiselect("Seleccione Años", full_years_list, default=anios_con_datos)
 
         # --- LÓGICA DE RENDERIZADO: Opción C (Anillos / Donuts Comparativos) ---
         if sel_ind_comp and sel_anios_comp:
-            # 1. Filtro
+            # 1. Filtro usando DISPLAY_TEXT
             df_chart = df_show_context[
-                (df_show_context["INDICADOR"] == sel_ind_comp) & 
+                (df_show_context["DISPLAY_TEXT"] == sel_ind_comp) & 
                 (df_show_context["AÑO"].astype(str).isin(sel_anios_comp))
             ].copy()
             
-            # Ordenamos por año para que aparezcan en orden cronológico izquierda-derecha
             df_chart.sort_values("AÑO", ascending=True, inplace=True)
             
-            # 2. Normalización de valores (Tu lógica de limpieza)
+            # 2. Normalización de valores
             resultados_norm = df_chart["VALOR"].apply(normalizar_valor)
             df_chart["VAL_NUM"] = [x[0] for x in resultados_norm]
             df_chart["VAL_TXT"] = [x[1] for x in resultados_norm]
@@ -612,7 +622,7 @@ elif modo_app == T["nav_view"]:
             if not df_chart["ES_VALIDO"].any():
                 st.warning(f"⚠️ Alerta: El indicador '{sel_ind_comp}' no tiene datos válidos en los años seleccionados.")
             else:
-                # Título del Indicador Centrado
+                # Título del Indicador Centrado (Ya incluye el código)
                 st.markdown(f"<h4 style='text-align:center; color:{text_color}; margin-bottom:20px;'><b>{sel_ind_comp}</b></h4>", unsafe_allow_html=True)
                 
                 # --- GRILLA DE ANILLOS ---
@@ -623,16 +633,14 @@ elif modo_app == T["nav_view"]:
                     val_num = row["VAL_NUM"]
                     val_txt = row["VAL_TXT"]
                     
-                    # --- LÓGICA DE FORMATO DE NÚMERO (El cambio clave) ---
-                    # Si es un número grande (mayor a 1000), le ponemos puntos de mil.
-                    # Si es texto ("SÍ") o pequeño ("85%"), lo dejamos quieto.
+                    # --- LÓGICA DE FORMATO DE NÚMERO (Con Puntos) ---
                     texto_mostrar = val_txt
                     try:
                         if val_num >= 1000:
                             # Formato: 2,200,786 -> Reemplazamos coma por punto -> 2.200.786
                             texto_mostrar = "{:,.0f}".format(val_num).replace(",", ".")
                     except:
-                        pass # Si falla algo, muestra el texto original
+                        pass 
                     
                     # Lógica de Color (Semáforo Eclíptica)
                     if val_num >= 100 or str(val_txt).lower() in ["si", "sí", "cumple"]:
@@ -658,13 +666,12 @@ elif modo_app == T["nav_view"]:
                             hoverinfo='label+value'
                         )])
                         
-                        # USAMOS 'texto_mostrar' AQUÍ
                         fig_donut.update_layout(
                             showlegend=False,
                             annotations=[dict(
-                                text=f"<b>{texto_mostrar}</b>",  # <--- AQUÍ ESTÁ EL CAMBIO
+                                text=f"<b>{texto_mostrar}</b>", 
                                 x=0.5, y=0.5, 
-                                font_size=24, # Le subí un pelo el tamaño para que se lea mejor
+                                font_size=24, 
                                 showarrow=False, 
                                 font=dict(color=text_color, family="Arial Black")
                             )],
@@ -686,4 +693,3 @@ elif modo_app == T["nav_view"]:
             
     except Exception as e:
         st.error(f"Error en el Dashboard: {e}")
-
