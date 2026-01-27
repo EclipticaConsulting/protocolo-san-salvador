@@ -616,7 +616,6 @@ elif modo_app == T["nav_view"]:
                 st.markdown(f"<h4 style='text-align:center; color:{text_color}; margin-bottom:20px;'><b>{sel_ind_comp}</b></h4>", unsafe_allow_html=True)
                 
                 # --- GRILLA DE ANILLOS ---
-                # Creamos tantas columnas como años seleccionados
                 cols = st.columns(len(sel_anios_comp))
                 
                 for i, (idx, row) in enumerate(df_chart.iterrows()):
@@ -624,8 +623,18 @@ elif modo_app == T["nav_view"]:
                     val_num = row["VAL_NUM"]
                     val_txt = row["VAL_TXT"]
                     
+                    # --- LÓGICA DE FORMATO DE NÚMERO (El cambio clave) ---
+                    # Si es un número grande (mayor a 1000), le ponemos puntos de mil.
+                    # Si es texto ("SÍ") o pequeño ("85%"), lo dejamos quieto.
+                    texto_mostrar = val_txt
+                    try:
+                        if val_num >= 1000:
+                            # Formato: 2,200,786 -> Reemplazamos coma por punto -> 2.200.786
+                            texto_mostrar = "{:,.0f}".format(val_num).replace(",", ".")
+                    except:
+                        pass # Si falla algo, muestra el texto original
+                    
                     # Lógica de Color (Semáforo Eclíptica)
-                    # Verde Éxito (#27AE60) / Rojo Alerta (#EB5757) / Amarillo Progreso (#F2C94C)
                     if val_num >= 100 or str(val_txt).lower() in ["si", "sí", "cumple"]:
                          color_anillo = "#27AE60" # Verde
                     elif val_num >= 50:
@@ -633,36 +642,34 @@ elif modo_app == T["nav_view"]:
                     else:
                          color_anillo = "#EB5757" # Rojo
                     
-                    # Cálculo del "gris" restante para el efecto de anillo
+                    # Cálculo del "gris" restante
                     val_restante = 100 - val_num if val_num <= 100 else 0
                     
-                    # Renderizamos en la columna correspondiente
                     with cols[i]:
-                        # Título del Año arriba del anillo
                         st.markdown(f"<p style='text-align:center; font-weight:bold; font-size:18px; color:{text_color}; margin:0;'>{anio}</p>", unsafe_allow_html=True)
                         
                         fig_donut = go.Figure(data=[go.Pie(
                             labels=['Logrado', 'Restante'],
                             values=[val_num, val_restante],
-                            hole=.75, # Tamaño del agujero central
-                            marker=dict(colors=[color_anillo, "rgba(128,128,128,0.2)"]), # Color vs Fondo gris transparente
+                            hole=.75, 
+                            marker=dict(colors=[color_anillo, "rgba(128,128,128,0.2)"]), 
                             textinfo='none',
                             sort=False,
                             hoverinfo='label+value'
                         )])
                         
-                        # Texto central (El valor: "85%" o "SÍ")
+                        # USAMOS 'texto_mostrar' AQUÍ
                         fig_donut.update_layout(
                             showlegend=False,
                             annotations=[dict(
-                                text=f"<b>{val_txt}</b>", 
+                                text=f"<b>{texto_mostrar}</b>",  # <--- AQUÍ ESTÁ EL CAMBIO
                                 x=0.5, y=0.5, 
-                                font_size=24, 
+                                font_size=24, # Le subí un pelo el tamaño para que se lea mejor
                                 showarrow=False, 
                                 font=dict(color=text_color, family="Arial Black")
                             )],
                             margin=dict(t=10, b=10, l=10, r=10),
-                            height=220, # Altura fija para alineación
+                            height=220, 
                             paper_bgcolor='rgba(0,0,0,0)',
                             plot_bgcolor='rgba(0,0,0,0)'
                         )
@@ -679,3 +686,4 @@ elif modo_app == T["nav_view"]:
             
     except Exception as e:
         st.error(f"Error en el Dashboard: {e}")
+
