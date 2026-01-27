@@ -625,5 +625,9 @@ elif modo_app == T["nav_view"]:
             st.info("Seleccione al menos un año para visualizar.")
 
         st.divider()
-
+        with st.expander(T["dash_expander_table"]):
+            st.dataframe(df_show_context, use_container_width=True, height=600)
+            
+    except Exception as e:  # <--- AGREGA ESTO
+        st.error(f"Error en el Dashboard: {e}") # <--- Y ESTO
 
