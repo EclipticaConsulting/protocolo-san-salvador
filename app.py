@@ -631,3 +631,4 @@ elif modo_app == T["nav_view"]:
     except Exception as e:  # <--- AGREGA ESTO
         st.error(f"Error en el Dashboard: {e}") # <--- Y ESTO
 
+
