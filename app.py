@@ -554,39 +554,76 @@ elif modo_app == T["nav_view"]:
         with c_ana1:
             sel_ind_comp = st.selectbox("Seleccione Indicador para Comparar", indicadores_disponibles)
         with c_ana2:
+            # Lógica para pre-seleccionar años si hay indicador
             full_years_list = [str(x) for x in range(2000, 2031)]
-            anios_con_datos = sorted(df_show_context[df_show_context["INDICADOR"] == sel_ind_comp]["AÑO"].unique().astype(str)) if sel_ind_comp else []
+            anios_con_datos = []
+            if sel_ind_comp and not df_show_context.empty:
+                 anios_con_datos = sorted(df_show_context[df_show_context["INDICADOR"] == sel_ind_comp]["AÑO"].unique().astype(str))
+            
             sel_anios_comp = st.multiselect("Seleccione Años", full_years_list, default=anios_con_datos)
 
-        if sel_ind_comp and sel_anios_comp and not df_show_context.empty:
+        # --- LÓGICA DE RENDERIZADO ---
+        if sel_ind_comp and sel_anios_comp:
+            # 1. Filtramos primero
             df_chart = df_show_context[
                 (df_show_context["INDICADOR"] == sel_ind_comp) & 
                 (df_show_context["AÑO"].astype(str).isin(sel_anios_comp))
             ].copy()
-            df_chart.sort_values("AÑO", ascending=True, inplace=True)
-            df_chart["AÑO"] = df_chart["AÑO"].astype(str)
+            
+            # 2. Verificamos si quedó algo (Manejo de Vacíos)
+            if df_chart.empty:
+                st.warning(f"⚠️ No se encontró información registrada para el indicador seleccionado en los años: {', '.join(sel_anios_comp)}.")
+            else:
+                # Preparación de datos
+                df_chart.sort_values("AÑO", ascending=True, inplace=True)
+                df_chart["AÑO"] = df_chart["AÑO"].astype(str) # Forzamos a string para que el eje sea categórico
 
-            color_seq = ["#FFCDD2", "#EF9A9A", "#E57373", "#EF5350", "#F44336"] if not dark_mode else px.colors.qualitative.Plotly
-            title_color_chart = "#011936" if not dark_mode else "#F2F2F2"
+                # Definición de Colores (Corrección de Contraste)
+                # Si es Dark Mode -> Texto Blanco (#F2F2F2)
+                # Si es Light Mode -> Texto Azul Eclíptica (#011936) para máximo contraste
+                chart_text_color = "#F2F2F2" if dark_mode else "#011936"
+                
+                # Paleta de barras
+                color_seq = ["#FFCDD2", "#EF9A9A", "#E57373", "#EF5350", "#F44336"] if not dark_mode else px.colors.qualitative.Plotly
 
-            fig_bar = px.bar(
-                df_chart, y="AÑO", x="VALOR", orientation='h', text="VALOR", color="AÑO", 
-                title=f"<b>{sel_ind_comp}</b>", color_discrete_sequence=color_seq
-            )
-            fig_bar.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color=text_color, family="Arial"), 
-                title_font=dict(color=title_color_chart, size=20, family="Arial Black"), 
-                showlegend=False, xaxis_title="<b>Valor Registrado</b>", yaxis_title="<b>Año del Informe</b>"
-            )
-            st.plotly_chart(fig_bar, use_container_width=True)
+                # Construcción del Gráfico
+                fig_bar = px.bar(
+                    df_chart, 
+                    y="AÑO", 
+                    x="VALOR", 
+                    orientation='h', 
+                    text="VALOR", 
+                    color="AÑO", 
+                    title=f"<b>{sel_ind_comp}</b>", 
+                    color_discrete_sequence=color_seq
+                )
+                
+                fig_bar.update_traces(textposition='outside') # Pone el valor fuera de la barra para mejor lectura
+
+                fig_bar.update_layout(
+                    paper_bgcolor='rgba(0,0,0,0)', 
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font=dict(color=chart_text_color, family="Arial"), # APLICAMOS EL COLOR CORREGIDO AQUÍ
+                    title_font=dict(color=chart_text_color, size=20, family="Arial Black"), 
+                    showlegend=False, 
+                    xaxis_title=dict(text="<b>Valor Registrado</b>", font=dict(color=chart_text_color)),
+                    yaxis_title=dict(text="<b>Año</b>", font=dict(color=chart_text_color)),
+                    yaxis=dict(
+                        type='category', # CLAVE: Esto fuerza a que solo muestre las categorías presentes (los años seleccionados)
+                        tickmode='linear',
+                        tickfont=dict(color=chart_text_color)
+                    ),
+                    xaxis=dict(
+                        tickfont=dict(color=chart_text_color)
+                    )
+                )
+                st.plotly_chart(fig_bar, use_container_width=True)
+        
+        elif not sel_ind_comp:
+            st.info("👈 Seleccione un indicador arriba para comenzar el análisis.")
         else:
-            st.info("Seleccione un indicador y años para ver la comparativa.")
+            st.info("Seleccione al menos un año para visualizar.")
 
         st.divider()
-        with st.expander(T["dash_expander_table"]):
-            st.dataframe(df_show_context, use_container_width=True, height=600)
-            
-    except Exception as e:
-        st.error(f"Error en el Dashboard: {e}")
+
 
