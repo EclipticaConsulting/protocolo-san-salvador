@@ -208,7 +208,7 @@ def normalizar_valor(valor_str):
     if v_limpio in ["si", "sí", "yes", "cumple"]:
         return 100, "SÍ", True
     if v_limpio in ["no", "no cumple"]:
-        return 0, "NO", True # Graficamos 0 o una pequeña barra base
+        return 0, "NO", True 
         
     # 2. Caso Vacío/Otro explícito
     if not v_limpio or v_limpio in ["otro", "nan", "none", "incompleto", "."]:
@@ -575,7 +575,7 @@ elif modo_app == T["nav_view"]:
 
         st.divider()
 
-        # Comparativo Bar Chart
+        # Comparativo con ANILLOS (Ring Charts)
         st.markdown(f"<h3 style='color:{text_color}'><b>{T['dash_chart_bar']}</b></h3>", unsafe_allow_html=True)
         
         indicadores_disponibles = sorted(df_show_context["INDICADOR"].unique()) if not df_show_context.empty else []
@@ -584,7 +584,6 @@ elif modo_app == T["nav_view"]:
         with c_ana1:
             sel_ind_comp = st.selectbox("Seleccione Indicador para Comparar", indicadores_disponibles)
         with c_ana2:
-            # Lógica para pre-seleccionar años si hay indicador
             full_years_list = [str(x) for x in range(2000, 2031)]
             anios_con_datos = []
             if sel_ind_comp and not df_show_context.empty:
@@ -592,8 +591,8 @@ elif modo_app == T["nav_view"]:
             
             sel_anios_comp = st.multiselect("Seleccione Años", full_years_list, default=anios_con_datos)
 
-        # --- LÓGICA DE RENDERIZADO HORIZONTAL (Opción B) ---
-       if sel_ind_comp and sel_anios_comp:
+        # --- LÓGICA DE RENDERIZADO: Opción C (Anillos / Donuts Comparativos) ---
+        if sel_ind_comp and sel_anios_comp:
             # 1. Filtro
             df_chart = df_show_context[
                 (df_show_context["INDICADOR"] == sel_ind_comp) & 
@@ -680,4 +679,3 @@ elif modo_app == T["nav_view"]:
             
     except Exception as e:
         st.error(f"Error en el Dashboard: {e}")
-
