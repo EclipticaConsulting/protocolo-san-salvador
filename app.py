@@ -8,7 +8,6 @@ import time
 import base64
 import re
 import unicodedata
-import json
 
 # --- IMPORTACIÓN DE DATOS ---
 try:
@@ -390,18 +389,12 @@ if modo_app == T["nav_load"]:
 
             # --- ROUTER DE INDICADORES ESPECIALES ---
             is_special = False
-            special_data = {} # Diccionario para guardar lo que recolectemos
+            special_data = {} 
 
             # 1. Tratados (SS-E-1)
             if ref_auto == "SS-E-1":
                 is_special = True
-                opciones_tratados = [
-                    "PIDESC", "CEDAW", "Convenio 102 OIT",
-                    "Convención Refugiados 1951/1967", "Convención Apátridas 1954",
-                    "Convención Interamericana Discapacidad",
-                    "Convención Trabajadores Migrantes",
-                    "Declaración ONU Pueblos Indígenas"
-                ]
+                opciones_tratados = ["PIDESC", "CEDAW", "Convenio 102 OIT", "Convención Refugiados 1951/1967", "Convención Apátridas 1954", "Convención Interamericana Discapacidad", "Convención Trabajadores Migrantes", "Declaración ONU Pueblos Indígenas"]
                 sel_tratados = st.multiselect("Seleccione Tratados Ratificados", opciones_tratados)
                 special_data["VALOR"] = str(len(sel_tratados))
                 special_data["NOTA"] = " | ".join(sel_tratados)
@@ -410,50 +403,49 @@ if modo_app == T["nav_load"]:
             # 2. Constitución (SS-E-2) & 7. Traducción (SS-P-36)
             elif ref_auto in ["SS-E-2", "SS-P-36"]:
                 is_special = True
-                opcion = st.radio("¿Existe Incorporación / Cobertura?", ["Sí", "No"], horizontal=True)
-                texto_detalle = ""
+                st.markdown("##### ¿Existe Incorporación / Cobertura?")
+                opcion = st.radio("Seleccione opción:", ["Sí", "No"], horizontal=True, label_visibility="collapsed")
+                # Feedback Visual Inmediato
                 if opcion == "Sí":
+                    st.success("✅ Has seleccionado: SÍ")
                     texto_detalle = st.text_area("Detalle de la información cualitativa")
+                else:
+                    st.warning("⚠️ Has seleccionado: NO")
+                    texto_detalle = ""
+                
                 special_data["VALOR"] = opcion
                 special_data["NOTA"] = texto_detalle
                 special_data["UNIDAD"] = "Binario"
 
             # 3. Legislación Específica (SS-E-3 - General)
-            # Detectamos por código Y palabra clave en nombre para distinguir del otro SS-E-3
             elif "SS-E-3" in ref_auto and "legislación" in nombre_ind.lower():
                 is_special = True
                 st.markdown("**Normas contempladas:**")
-                normas = [
-                    "Código de Seguridad Social", "Capítulos especiales Código Trabajo",
-                    "Conjunto de leyes dispersas", "Normas negociación colectiva", "Otras normas"
-                ]
+                normas = ["Código de Seguridad Social", "Capítulos especiales Código Trabajo", "Conjunto de leyes dispersas", "Normas negociación colectiva", "Otras normas"]
                 seleccionadas = []
                 detalles = []
-                
                 for n in normas:
                     if st.checkbox(n):
                         seleccionadas.append(n)
                         det = st.text_input(f"Especifique para: {n}")
                         if det: detalles.append(f"{n}: {det}")
-                
                 special_data["VALOR"] = str(len(seleccionadas))
                 special_data["NOTA"] = " || ".join(detalles)
                 special_data["UNIDAD"] = "Normas"
 
-            # 4. Trabajadoras Domésticas (SS-E-3 - Específico)
-            elif "SS-E-3" in ref_auto and "doméstico" in nombre_ind.lower():
+            # 4. Trabajadoras Domésticas (SS-E-13) <-- CORREGIDO
+            elif ref_auto == "SS-E-13":
                 is_special = True
                 opcion = st.selectbox("Requisitos de Acceso", ["Seleccione...", "Sí existen requisitos", "No existen requisitos"])
                 texto = ""
                 if "Sí" in opcion:
                     texto = st.text_area("Describa los requisitos")
-                
                 if opcion != "Seleccione...":
                     special_data["VALOR"] = opcion
                     special_data["NOTA"] = texto
                     special_data["UNIDAD"] = "Cualitativo"
                 else:
-                    special_data["VALOR"] = "" # Bloquea el guardado si está vacio
+                    special_data["VALOR"] = "" 
 
             # 5. Tiempo de Licencia (SS-P-8)
             elif ref_auto == "SS-P-8":
@@ -463,7 +455,6 @@ if modo_app == T["nav_load"]:
                     mat = st.number_input("Días Maternidad (0 = No Info)", min_value=0)
                 with col_b:
                     pat = st.number_input("Días Paternidad (0 = No Info)", min_value=0)
-                
                 special_data["VALOR"] = f"M:{mat}|P:{pat}"
                 special_data["NOTA"] = ""
                 special_data["UNIDAD"] = "Días"
@@ -516,15 +507,13 @@ if modo_app == T["nav_load"]:
                 with c_row2_2:
                     m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue", index=None, placeholder="Seleccione...")
             else:
-                # Si es especial, pedimos datos complementarios comunes
                 m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue_sp", index=None, placeholder="Seleccione...")
-                m_des = "Total Nacional" # Default para especiales simple
+                m_des = "Total Nacional" 
                 m_uni = special_data.get("UNIDAD", "")
 
             # --- BOTÓN DE ACCIÓN ---
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button(T["manual_btn"], type="primary", use_container_width=True):
-                # Validación condicional
                 valid = False
                 if is_special:
                     if special_data.get("VALOR") and m_fue: valid = True
@@ -540,7 +529,6 @@ if modo_app == T["nav_load"]:
                             final_nota = special_data["NOTA"]
                         else:
                             final_val = m_val
-                            # Construir nota estándar
                             parts = []
                             if m_calidad: parts.append(m_calidad)
                             if chk_progreso: parts.append("Señal de Progreso")
@@ -666,7 +654,6 @@ elif modo_app == T["nav_view"]:
             sel_anios_comp = st.multiselect("Seleccione Años", full_years_list, default=anios_con_datos)
 
         if sel_ind_comp and sel_anios_comp:
-            # Obtener REF pura para el router de visualización
             ref_pura = sel_ind_comp.split("]")[0].replace("[", "").strip() if "[" in sel_ind_comp else ""
             nombre_pura = sel_ind_comp.split("] ")[1] if "]" in sel_ind_comp else sel_ind_comp
             
@@ -687,8 +674,8 @@ elif modo_app == T["nav_view"]:
                             with st.expander("Ver Tratados"):
                                 st.write(row.NOTA.replace(" | ", "\n- "))
 
-                # B. Binarios con Texto (SS-E-2, SS-P-36, Doméstico SS-E-3)
-                elif ref_pura in ["SS-E-2", "SS-P-36"] or ("SS-E-3" in ref_pura and "doméstico" in nombre_pura.lower()):
+                # B. Binarios con Texto (SS-E-2, SS-P-36)
+                elif ref_pura in ["SS-E-2", "SS-P-36"]:
                     cols = st.columns(len(df_chart))
                     for i, row in enumerate(df_chart.itertuples()):
                         with cols[i]:
@@ -703,7 +690,6 @@ elif modo_app == T["nav_view"]:
                     for i, row in enumerate(df_chart.itertuples()):
                         with cols[i]:
                             st.metric(label=str(row.ANIO), value=f"{row.VALOR} Normas")
-                            # Parsear nota: "Norma: desc || Norma2: desc"
                             try:
                                 items = row.NOTA.split(" || ")
                                 if items:
@@ -711,20 +697,29 @@ elif modo_app == T["nav_view"]:
                                     st.info(sel)
                             except: pass
 
-                # D. Licencias (SS-P-8) - GRAFICO BARRAS
+                # D. Doméstico (SS-E-13) <-- CORREGIDO
+                elif ref_pura == "SS-E-13":
+                    cols = st.columns(len(df_chart))
+                    for i, row in enumerate(df_chart.itertuples()):
+                        with cols[i]:
+                            # Extraer solo la respuesta corta para la tarjeta (Sí/No)
+                            val_short = "Sí" if "Sí" in str(row.VALOR) else "No"
+                            st.metric(label=str(row.ANIO), value=val_short)
+                            if val_short == "Sí":
+                                with st.expander("Ver Requisitos"):
+                                    st.write(row.NOTA)
+
+                # E. Licencias (SS-P-8)
                 elif ref_pura == "SS-P-8":
-                    # Colores
-                    c_mat = "#FF8C00" if not dark_mode else "#FFCC80" # Naranja Potente/Claro
-                    c_pat = "#006400" if not dark_mode else "#90EE90" # Verde Oscuro/Claro
+                    c_mat = "#FF8C00" if not dark_mode else "#FFCC80" 
+                    c_pat = "#006400" if not dark_mode else "#90EE90" 
                     
                     cols = st.columns(len(df_chart))
                     for i, row in enumerate(df_chart.itertuples()):
-                        # Parse "M:90|P:15"
                         try:
                             val_str = str(row.VALOR)
                             m_val = int(re.search(r'M:(\d+)', val_str).group(1))
                             p_val = int(re.search(r'P:(\d+)', val_str).group(1))
-                            
                             fig = go.Figure(data=[
                                 go.Bar(name='Maternidad', x=['Días'], y=[m_val], marker_color=c_mat, text=[m_val], textposition='auto'),
                                 go.Bar(name='Paternidad', x=['Días'], y=[p_val], marker_color=c_pat, text=[p_val], textposition='auto')
@@ -735,7 +730,7 @@ elif modo_app == T["nav_view"]:
                         except:
                             st.error("Error formato datos")
 
-                # E. Medios (SS-P-35)
+                # F. Medios (SS-P-35)
                 elif ref_pura == "SS-P-35":
                     cols = st.columns(len(df_chart))
                     for i, row in enumerate(df_chart.itertuples()):
@@ -747,32 +742,23 @@ elif modo_app == T["nav_view"]:
                                 if st.button("Ver características", key=f"btn_medios_{i}"):
                                     st.info(row.NOTA)
 
-                # F. Cobertura Rural (SS-R-13) - BARRA SIMPLE 0-100
+                # G. Cobertura Rural (SS-R-13)
                 elif ref_pura == "SS-R-13":
                     cols = st.columns(len(df_chart))
                     for i, row in enumerate(df_chart.itertuples()):
                         try:
                             val = float(row.VALOR) if row.VALOR != "No Info" else 0
-                            fig = go.Figure(go.Bar(
-                                x=['Cobertura'], y=[val],
-                                text=[f"{val}%"], textposition='auto',
-                                marker_color='#33b5e5'
-                            ))
+                            fig = go.Figure(go.Bar(x=['Cobertura'], y=[val], text=[f"{val}%"], textposition='auto', marker_color='#33b5e5'))
                             fig.update_yaxes(range=[0, 100])
                             fig.update_layout(title=str(row.ANIO), height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
                             with cols[i]:
                                 st.plotly_chart(fig, use_container_width=True, key=f"bar_rur_{i}")
                         except: pass
 
-                # G. VISUALIZACIÓN ESTÁNDAR (ANILLOS)
+                # H. VISUALIZACIÓN ESTÁNDAR
                 else:
-                    # (Aquí va el código de los anillos que ya tenías, para el resto de indicadores)
                     cols = st.columns(len(df_chart))
                     for i, (_, row) in enumerate(df_chart.iterrows()):
-                        # ... Logica de anillos existente ...
-                        # Copia aquí la lógica de renderizado de anillos del mensaje anterior
-                        # Si quieres ahorrar espacio en la respuesta, asumo que mantienes el bloque 'else' original.
-                        # Para que funcione "copiar y pegar", incluyo una versión simplificada del anillo aquí:
                         anio = str(row["ANIO"])
                         norm_val = normalizar_valor(row["VALOR"])
                         val_num = norm_val[0]
