@@ -550,6 +550,7 @@ else:
 # MODULE 1: DATA ENTRY
 # =============================================================================
 if modo_app == T["nav_load"]:
+    # --- METADATOS SUPERIORES ---
     c_meta1, c_meta2, c_meta3 = st.columns(3)
     with c_meta1:
         pais_sel = st.selectbox(T["meta_country"], list(MAPA_PAISES.keys()), index=None, placeholder="Seleccione un país...")
@@ -568,6 +569,7 @@ if modo_app == T["nav_load"]:
         if not der_sel:
             st.warning("⚠️ Selecciona un 'Derecho Asignado' arriba para ver las listas.")
         else:
+            # --- SELECCIÓN JERÁRQUICA ---
             agrupamientos_disp = list(CATALOGO_INDICADORES.get(der_sel, {}).keys()) or ["No hay datos cargados"]
             m_agr = st.selectbox("Agrupamiento", agrupamientos_disp, key="sel_agr", index=None, placeholder="Seleccione agrupamiento...")
 
@@ -600,27 +602,44 @@ if modo_app == T["nav_load"]:
             st.info(f"📌 Referencia Asignada: **{ref_auto}**")
             st.markdown("---")
 
-            c1, c2 = st.columns([1, 1.5])
+            # --- FILA 1: DETALLES DEL DATO (Alineación corregida) ---
+            # Usamos ratios para mantener la proporción visual [1 vs 1.5]
+            # Col 1 (1.0): Desagregación
+            # El resto suma 1.5 dividido en 3: Valor (0.5), Atributos (0.5), Estado (0.5)
+            c_row1_1, c_row1_2, c_row1_3, c_row1_4 = st.columns([1, 0.4, 0.6, 0.5])
 
-            with c1:
+            with c_row1_1:
                 m_des = st.selectbox("Desagregación", LISTA_DESAGREGACION, key="sel_des", index=None, placeholder="Seleccione...")
+            
+            with c_row1_2:
+                m_val = st.text_input("Valor", key="input_val")
+            
+            with c_row1_3:
+                # Label manual ajustado para coincidir exactamente con los labels de Streamlit (14px/font-size)
+                # Usamos el color del tema actual para que no desentone
+                lbl_color = "#F2F2F2" if dark_mode else "#011936"
+                st.markdown(f"""
+                    <p style='font-size: 14px; margin-bottom: 0px; color: {lbl_color};'>Atributos</p>
+                """, unsafe_allow_html=True)
+                chk_progreso = st.checkbox("Señal de Progreso", key="chk_prog")
+                chk_transversal = st.checkbox("P. Transversal", key="chk_tran") # Abreviado para que quepa mejor
+
+            with c_row1_4:
+                opciones_calidad = ["", "NO INFO", "INFO AMBIGUA", "NO APLICA"]
+                m_calidad = st.selectbox("Estado / Nota", opciones_calidad, key="sel_calidad")
+
+            # --- FILA 2: FUENTE Y UNIDAD (Alineación perfecta) ---
+            # Mantenemos el ratio [1, 1.5] para que "Unidad" se alinee con "Desagregación"
+            c_row2_1, c_row2_2 = st.columns([1, 1.5])
+
+            with c_row2_1:
                 m_uni = st.selectbox("Unidad", LISTA_UNIDADES, key="sel_uni", index=None, placeholder="Seleccione...")
-
-            with c2:
-                sc1, sc2, sc3 = st.columns([1.2, 1.5, 1.3])
-                with sc1:
-                    m_val = st.text_input("Valor", key="input_val")
-                with sc2:
-                    # Use neutral label color (works in both themes)
-                    st.markdown("<label style='font-size:12px;'>Atributos</label>", unsafe_allow_html=True)
-                    chk_progreso = st.checkbox("Señal de Progreso", key="chk_prog")
-                    chk_transversal = st.checkbox("Principio Transversal", key="chk_tran")
-                with sc3:
-                    opciones_calidad = ["", "NO INFO", "INFO AMBIGUA", "NO APLICA"]
-                    m_calidad = st.selectbox("Estado / Nota", opciones_calidad, key="sel_calidad")
-
+            
+            with c_row2_2:
                 m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue", index=None, placeholder="Seleccione...")
 
+            # --- BOTÓN DE ACCIÓN ---
+            st.markdown("<br>", unsafe_allow_html=True) # Un poco de aire antes del botón
             if st.button(T["manual_btn"], type="primary", use_container_width=True):
                 if not pais_sel or not der_sel or not anio_sel or not seleccion_ind or not m_uni or not m_fue:
                     st.error("⚠️ Faltan campos obligatorios (País, Derecho, Año, Indicador, Unidad o Fuente).")
