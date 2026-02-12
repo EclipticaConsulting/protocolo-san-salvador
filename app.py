@@ -39,6 +39,7 @@ def get_base64_image(image_path: str) -> str:
 # -----------------------------
 st.set_page_config(page_title="Protocolo de San Salvador - Eclíptica", page_icon="🌎", layout="wide")
 
+img_base64 = get_base64_image("watermark_protocolo.png")
 # -----------------------------
 # Texts
 # -----------------------------
@@ -284,8 +285,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 st.markdown("---")
 # Nota: Si ya moviste esta línea al inicio del script como hablamos antes, bórrala de aquí.
 # Si no la moviste, déjala aquí para que el CSS funcione.
-img_base64 = get_base64_image("watermark_protocolo.png")
-
+}
 if dark_mode:
     st.markdown(f"""
     <style>
