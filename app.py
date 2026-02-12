@@ -353,8 +353,17 @@ if dark_mode:
     st.markdown(f"""
     <style>
     .stApp {{ background-color: #011936; color: #F2F2F2; }}
-    /* FONDO DARK */
-    .stApp::before {{ content: ""; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-image: url("data:image/png;base64,{img_base64}"); background-size: 50%; background-position: center; background-repeat: repeat; background-attachment: fixed; opacity: 0.15; filter: grayscale(100%) invert(1); z-index: 0; pointer-events: none; }}
+    /* FONDO DARK - AJUSTADO */
+    .stApp::before {{ 
+        content: ""; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+        background-image: url("data:image/png;base64,{img_base64}"); 
+        background-size: 250px; /* <--- CAMBIO 1: Tamaño fijo más pequeño para dar aire */
+        background-position: center; 
+        background-repeat: repeat; 
+        background-attachment: fixed; 
+        opacity: 0.08; /* <--- CAMBIO 2: Volvemos a la opacidad sutil inicial */
+        filter: grayscale(100%) invert(1); z-index: 0; pointer-events: none; 
+    }}
     .sticky-header {{ position: fixed; top: 0; left: 0; width: 100%; z-index: 99999; background-color: rgba(0, 15, 31, 0.85); backdrop-filter: blur(12px); padding-bottom: 15px; padding-top: 10px; border-bottom: 1px solid rgba(70, 83, 98, 0.5); }}
     .main .block-container {{ z-index: 1; position: relative; padding-top: 8rem !important; }}
     .stApp > header {{ display: none !important; }}
@@ -380,8 +389,17 @@ else:
     st.markdown(f"""
     <style>
     .stApp {{ background-color: #F2F2F2; color: #011936; }}
-    /* FONDO LIGHT */
-    .stApp::before {{ content: ""; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-image: url("data:image/png;base64,{img_base64}"); background-size: 50%; background-position: center; background-repeat: repeat; background-attachment: fixed; opacity: 0.15; filter: grayscale(100%); z-index: 0; pointer-events: none; }}
+    /* FONDO LIGHT - AJUSTADO */
+    .stApp::before {{ 
+        content: ""; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+        background-image: url("data:image/png;base64,{img_base64}"); 
+        background-size: 250px; /* <--- CAMBIO 1: Tamaño fijo más pequeño */
+        background-position: center; 
+        background-repeat: repeat; 
+        background-attachment: fixed; 
+        opacity: 0.08; /* <--- CAMBIO 2: Opacidad sutil inicial */
+        filter: grayscale(100%); z-index: 0; pointer-events: none; 
+    }}
     .sticky-header {{ position: fixed; top: 0; left: 0; width: 100%; z-index: 99999; background-color: rgba(224, 224, 224, 0.85); backdrop-filter: blur(12px); padding-bottom: 15px; padding-top: 10px; border-bottom: 2px solid #9D8420; }}
     .main .block-container {{ z-index: 1; position: relative; padding-top: 8rem !important; }}
     .stApp > header {{ display: none !important; }}
@@ -406,7 +424,6 @@ else:
     section[data-testid="stSidebar"] {{ display: none; }}
     </style>
     """, unsafe_allow_html=True)
-
 # =============================================================================
 # MODULE 1: DATA ENTRY
 # =============================================================================
