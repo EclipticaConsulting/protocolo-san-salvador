@@ -324,7 +324,7 @@ def preparar_serie_por_anio(df_context: pd.DataFrame, display_text: str, anios: 
     d.sort_values("ANIO", inplace=True)
     return d
 
-# --- NUEVA FUNCIÓN DE ORDENAMIENTO LÓGICO ---
+# --- NUEVA FUNCIÓN DE ORDENAMIENTO LÓGICO (CORREGIDA: USA TUPLAS) ---
 def ordenar_indicadores_logico(df):
     """
     Ordena el DataFrame para la lista desplegable:
@@ -349,18 +349,19 @@ def ordenar_indicadores_logico(df):
     # Asignar prioridad (si no coincide, va al final con 99)
     df_temp["__prioridad"] = df_temp["__cat_clean"].map(lambda x: next((v for k,v in mapa_prioridad.items() if k in x), 99))
     
-    # Extraer parte numérica de la referencia (ej: "1.2" -> [1, 2])
+    # Extraer parte numérica de la referencia (ej: "1.2" -> (1, 2))
     def parse_ref(ref_str):
         try:
             # Busca números separados por puntos
             parts = re.findall(r'\d+', str(ref_str))
-            return [int(p) for p in parts] if parts else [9999]
+            # IMPORTANTE: Convertir a TUPLA para que sea 'hashable' y ordenable
+            return tuple(int(p) for p in parts) if parts else (9999,)
         except:
-            return [9999]
+            return (9999,)
             
     df_temp["__ref_sort"] = df_temp["REF_INDICADOR"].apply(parse_ref)
     
-    # Ordenar por: Prioridad Categoría -> Referencia Numérica
+    # Ordenar por: Prioridad Categoría -> Referencia Numérica (Tupla)
     df_temp.sort_values(by=["__prioridad", "__ref_sort"], ascending=[True, True], inplace=True)
     
     return df_temp["DISPLAY_TEXT"].unique().tolist()
@@ -610,6 +611,7 @@ if modo_app == T["nav_load"]:
                 with sc1:
                     m_val = st.text_input("Valor", key="input_val")
                 with sc2:
+                    # Use neutral label color (works in both themes)
                     st.markdown("<label style='font-size:12px;'>Atributos</label>", unsafe_allow_html=True)
                     chk_progreso = st.checkbox("Señal de Progreso", key="chk_prog")
                     chk_transversal = st.checkbox("Principio Transversal", key="chk_tran")
@@ -688,6 +690,7 @@ if modo_app == T["nav_load"]:
                     st.toast(T["toast_save"], icon="🎉")
                     st.balloons()
                     st.session_state.df_buffer = pd.DataFrame()
+                    # only clear cached data reads
                     st.cache_data.clear()
                     st.rerun()
                 except Exception as e:
@@ -737,14 +740,19 @@ elif modo_app == T["nav_view"]:
         if not df_historico.empty:
             df_base = df_historico.copy()
 
+            # Country filter (robust)
             df_base = df_base[df_base["PAIS"].astype(str).str.strip() == str(filtro_pais).strip()]
 
+            # Right filter
             if filtro_derecho != "Todos":
                 df_base = df_base[df_base["DERECHO"] == filtro_derecho]
 
+            # Optional: exclude rows marked explicitly as incompleto (kept for compatibility)
+            # NOTE: your NOTA format is now different, so we only exclude exact match "INCOMPLETO"
             if "NOTA" in df_base.columns:
                 df_base = df_base[df_base["NOTA"].astype(str).str.strip().str.upper() != "INCOMPLETO"]
 
+            # DISPLAY TEXT
             df_base["DISPLAY_TEXT"] = df_base.apply(
                 lambda x: f"[{str(x['REF_INDICADOR']).strip()}] {str(x['INDICADOR']).strip()}",
                 axis=1
