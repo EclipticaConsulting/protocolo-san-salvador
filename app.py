@@ -44,7 +44,7 @@ st.set_page_config(page_title="Protocolo de San Salvador - Eclíptica", page_ico
 # -----------------------------
 TEXTOS = {
     "ES": {
-        "title": "Protocolo de San Salvador",
+        "title": "Sistema de Indicadores - Protocolo de San Salvador (Versión beta)",
         "nav_load": "Gestión de Registros",
         "nav_view": "Dashboard",
         "meta_country": "País del Informe (*)",
@@ -61,7 +61,7 @@ TEXTOS = {
         "toast_save": "Datos guardados correctamente."
     },
     "EN": {
-        "title": "San Salvador Protocol",
+        "title": "Indicator System - San Salvador Protocol (Beta version)",
         "nav_load": "Record Management",
         "nav_view": "Control Dashboard",
         "meta_country": "Report Country (*)",
@@ -282,13 +282,21 @@ with header_container:
 
 st.markdown('</div>', unsafe_allow_html=True)
 st.markdown("---")
+# Nota: Si ya moviste esta línea al inicio del script como hablamos antes, bórrala de aquí.
+# Si no la moviste, déjala aquí para que el CSS funcione.
 img_base64 = get_base64_image("watermark_protocolo.png")
 
 if dark_mode:
     st.markdown(f"""
     <style>
     .stApp {{ background-color: #011936; color: #F2F2F2; }}
-    .stApp::before {{ content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url("data:image/png;base64,{img_base64}"); background-size: 80%; background-position: center; background-repeat: no-repeat; background-attachment: fixed; opacity: 0.08; filter: grayscale(100%) invert(1); z-index: 0; pointer-events: none; }}
+    .stApp::before {{ 
+        content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+        background-image: url("data:image/png;base64,{img_base64}"); 
+        background-size: 80%; background-position: center; background-repeat: no-repeat; 
+        /* AJUSTE: Opacidad subida de 0.08 a 0.15 */
+        background-attachment: fixed; opacity: 0.15; filter: grayscale(100%) invert(1); z-index: 0; pointer-events: none; 
+    }}
     .sticky-header {{ position: fixed; top: 0; left: 0; width: 100%; z-index: 99999; background-color: rgba(0, 15, 31, 0.85); backdrop-filter: blur(12px); padding-bottom: 15px; padding-top: 10px; border-bottom: 1px solid rgba(70, 83, 98, 0.5); }}
     .main .block-container {{ z-index: 1; position: relative; padding-top: 8rem !important; }}
     .stApp > header {{ display: none !important; }}
@@ -314,7 +322,13 @@ else:
     st.markdown(f"""
     <style>
     .stApp {{ background-color: #F2F2F2; color: #011936; }}
-    .stApp::before {{ content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url("data:image/png;base64,{img_base64}"); background-size: 80%; background-position: center; background-repeat: no-repeat; background-attachment: fixed; opacity: 0.08; filter: grayscale(100%); z-index: 0; pointer-events: none; }}
+    .stApp::before {{ 
+        content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+        background-image: url("data:image/png;base64,{img_base64}"); 
+        background-size: 80%; background-position: center; background-repeat: no-repeat; 
+        /* AJUSTE: Opacidad subida de 0.08 a 0.15 */
+        background-attachment: fixed; opacity: 0.15; filter: grayscale(100%); z-index: 0; pointer-events: none; 
+    }}
     .sticky-header {{ position: fixed; top: 0; left: 0; width: 100%; z-index: 99999; background-color: rgba(224, 224, 224, 0.85); backdrop-filter: blur(12px); padding-bottom: 15px; padding-top: 10px; border-bottom: 2px solid #9D8420; }}
     .main .block-container {{ z-index: 1; position: relative; padding-top: 8rem !important; }}
     .stApp > header {{ display: none !important; }}
@@ -339,7 +353,6 @@ else:
     section[data-testid="stSidebar"] {{ display: none; }}
     </style>
     """, unsafe_allow_html=True)
-
 # =============================================================================
 # MODULE 1: DATA ENTRY
 # =============================================================================
