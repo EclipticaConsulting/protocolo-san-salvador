@@ -396,8 +396,10 @@ if dark_mode:
     }}
     .main .block-container {{ z-index: 1; position: relative; padding-top: 8rem !important; }}
     .stApp > header {{ display: none !important; }}
+    /* RADIO BUTTONS - DARK MODE */
     div[data-testid="stRadio"] label {{
-        background-color: transparent !important; color: #B0B0B0 !important;
+        background-color: transparent !important; 
+        color: #F2F2F2 !important; /* REQUERIMIENTO: GRIS CLARO EN DARK MODE */
         padding: 8px 20px; border-radius: 20px; font-weight: 600; border: 1px solid transparent;
         transition: all 0.3s ease;
     }}
@@ -414,6 +416,7 @@ if dark_mode:
         background-color: #465362; border: 1px solid #9D8420; border-radius: 8px; padding: 15px;
     }}
     div[data-testid="metric-container"] {{ display: flex; justify-content: center; flex-direction: column; align-items: center; }}
+    /* LABELS GENERALES - DARK MODE */
     h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, .stMetricLabel {{ color: #F2F2F2 !important; }}
     div[data-testid="stMetricValue"] {{ color: #9D8420 !important; }}
     div.stButton > button {{
@@ -451,8 +454,12 @@ else:
     .main .block-container {{ z-index: 1; position: relative; padding-top: 8rem !important; }}
     .stApp > header {{ display: none !important; }}
     div[role="radiogroup"] > label > div:first-child {{ display: none !important; }}
+    
+    /* RADIO BUTTONS - LIGHT MODE */
     div[data-testid="stRadio"] label {{
-        background-color: transparent; color: #465362 !important; font-weight: 400 !important;
+        background-color: transparent; 
+        color: #011936 !important; /* REQUERIMIENTO: AZUL OSCURO EN LIGHT MODE */
+        font-weight: 400 !important;
         border-radius: 20px !important; padding: 8px 20px; border: 1px solid transparent;
         transition: all 0.3s ease; margin-right: 10px;
     }}
@@ -464,6 +471,7 @@ else:
         border: 2px solid #011936 !important; box-shadow: 0px 4px 8px rgba(0,0,0,0.3);
     }}
     div[role="radiogroup"] label[data-checked="true"] p {{ color: #FFFFFF !important; }}
+    
     .stSelectbox div[data-baseweb="select"] > div, .stTextInput input {{
         background-color: #011936 !important; color: #FFFFFF !important; border: 1px solid #465362 !important;
     }}
@@ -485,6 +493,13 @@ else:
         background-color: #9D8420 !important; color: #FFFFFF !important; border-color: #9D8420 !important;
     }}
     .stButton button p {{ color: inherit !important; }}
+    
+    /* LABELS GENERALES - LIGHT MODE (Filtros, Inputs, etc.) */
+    p, h1, h2, h3, h4, h5, h6, label, .stMarkdown, .stRadio label {{ 
+        color: #011936 !important; /* REQUERIMIENTO: AZUL OSCURO PARA TODOS LOS TEXTOS */
+    }}
+    div[data-testid="stMetricLabel"] {{ color: #011936 !important; }}
+    div[data-testid="stMetricValue"] {{ color: #9D8420 !important; }}
     section[data-testid="stSidebar"] {{ display: none; }}
     </style>
     """, unsafe_allow_html=True)
@@ -499,7 +514,8 @@ if modo_app == T["nav_load"]:
     with c_meta2:
         der_sel = st.selectbox(T["meta_right"], list(MAPA_DERECHOS.keys()), index=None, placeholder="Seleccione un derecho...")
     with c_meta3:
-        anio_sel = st.selectbox(T["meta_year"], range(2000, 2031), index=None, placeholder="Seleccione año...")
+        # REQUERIMIENTO: AÑOS DESDE 2010
+        anio_sel = st.selectbox(T["meta_year"], range(2010, 2031), index=None, placeholder="Seleccione año...")
 
     st.markdown("---")
 
@@ -674,7 +690,8 @@ elif modo_app == T["nav_view"]:
             opciones_derecho = ["Todos"] + list_derechos
             filtro_derecho = st.selectbox("Filtrar por Derecho", opciones_derecho, index=0)
         with c_fil3:
-            opciones_anio = [str(x) for x in range(2000, 2031)]
+            # REQUERIMIENTO: AÑOS DESDE 2010
+            opciones_anio = [str(x) for x in range(2010, 2031)]
             idx_anio = opciones_anio.index(str(max_anio)) if str(max_anio) in opciones_anio else 0
             filtro_anio = st.selectbox("Filtrar por Año (Dashboard)", opciones_anio, index=idx_anio)
 
@@ -769,7 +786,8 @@ elif modo_app == T["nav_view"]:
         with c_ana1:
             sel_ind_comp = st.selectbox("Seleccione Indicador para Comparar", indicadores_disponibles)
         with c_ana2:
-            full_years_list = [str(x) for x in range(2000, 2031)]
+            # REQUERIMIENTO: AÑOS DESDE 2010
+            full_years_list = [str(x) for x in range(2010, 2031)]
             anios_con_datos = []
             if sel_ind_comp and not df_show_context.empty:
                 anios_con_datos = sorted(df_show_context[df_show_context["DISPLAY_TEXT"] == sel_ind_comp]["ANIO"].unique().astype(str))
@@ -844,7 +862,7 @@ elif modo_app == T["nav_view"]:
                                 text=f"<b>{texto_mostrar}</b>",
                                 x=0.5, y=0.5,
                                 font_size=24,
-                                showarrow=False,    
+                                showarrow=False,
                                 font=dict(color=text_color, family="Arial Black")
                             )],
                             margin=dict(t=10, b=10, l=10, r=10),
@@ -863,5 +881,6 @@ elif modo_app == T["nav_view"]:
         st.divider()
         with st.expander(T["dash_expander_table"]):
             st.dataframe(df_show_context, use_container_width=True, height=600)
+
     except Exception as e:
         st.error(f"❌ Error en el Dashboard: {e}")
