@@ -426,12 +426,13 @@ else:
 # =============================================================================
 if modo_app == T["nav_load"]:
     c_meta1, c_meta2, c_meta3 = st.columns(3)
+    # AÑADIMOS KEYS PARA QUE SEAN CONTROLABLES (AUNQUE NO LAS BORRAREMOS)
     with c_meta1:
-        pais_sel = st.selectbox(T["meta_country"], list(MAPA_PAISES.keys()), index=None, placeholder="Seleccione un país...")
+        pais_sel = st.selectbox(T["meta_country"], list(MAPA_PAISES.keys()), index=None, placeholder="Seleccione un país...", key="k_pais")
     with c_meta2:
-        der_sel = st.selectbox(T["meta_right"], list(MAPA_DERECHOS.keys()), index=None, placeholder="Seleccione un derecho...")
+        der_sel = st.selectbox(T["meta_right"], list(MAPA_DERECHOS.keys()), index=None, placeholder="Seleccione un derecho...", key="k_der")
     with c_meta3:
-        anio_sel = st.selectbox(T["meta_year"], range(2010, 2031), index=None, placeholder="Seleccione año...")
+        anio_sel = st.selectbox(T["meta_year"], range(2010, 2031), index=None, placeholder="Seleccione año...", key="k_anio")
 
     st.markdown("---")
 
@@ -476,7 +477,8 @@ if modo_app == T["nav_load"]:
             if ref_auto == "SS-E-1":
                 is_special = True
                 opciones_tratados = ["PIDESC", "CEDAW", "Convenio 102 OIT", "Convención Refugiados 1951/1967", "Convención Apátridas 1954", "Convención Interamericana Discapacidad", "Convención Trabajadores Migrantes", "Declaración ONU Pueblos Indígenas"]
-                sel_tratados = st.multiselect("Seleccione Tratados Ratificados", opciones_tratados)
+                # AGREGADA KEY
+                sel_tratados = st.multiselect("Seleccione Tratados Ratificados", opciones_tratados, key="sp_tratados")
                 special_data["VALOR"] = str(len(sel_tratados))
                 special_data["NOTA"] = " | ".join(sel_tratados)
                 special_data["UNIDAD"] = "Tratados"
@@ -485,10 +487,12 @@ if modo_app == T["nav_load"]:
             elif ref_auto in ["SS-E-2", "SS-P-36"]:
                 is_special = True
                 st.markdown("##### ¿Existe Incorporación / Cobertura?")
-                opcion = st.radio("Seleccione opción:", ["Sí", "No"], horizontal=True, label_visibility="collapsed")
+                # AGREGADA KEY
+                opcion = st.radio("Seleccione opción:", ["Sí", "No"], horizontal=True, label_visibility="collapsed", key="sp_rad_bin")
                 if opcion == "Sí":
                     st.success("✅ Has seleccionado: SÍ")
-                    texto_detalle = st.text_area("Detalle de la información cualitativa")
+                    # AGREGADA KEY
+                    texto_detalle = st.text_area("Detalle de la información cualitativa", key="sp_txt_bin")
                 else:
                     st.warning("⚠️ Has seleccionado: NO")
                     texto_detalle = ""
@@ -504,10 +508,12 @@ if modo_app == T["nav_load"]:
                 normas = ["Código de Seguridad Social", "Capítulos especiales Código Trabajo", "Conjunto de leyes dispersas", "Normas negociación colectiva", "Otras normas"]
                 seleccionadas = []
                 detalles = []
-                for n in normas:
-                    if st.checkbox(n):
+                for i, n in enumerate(normas):
+                    # AGREGADA KEY DINÁMICA CON INDICE
+                    if st.checkbox(n, key=f"sp_chk_norma_{i}"):
                         seleccionadas.append(n)
-                        det = st.text_input(f"Especifique para: {n}")
+                        # AGREGADA KEY DINÁMICA CON INDICE
+                        det = st.text_input(f"Especifique para: {n}", key=f"sp_txt_norma_{i}")
                         if det: detalles.append(f"{n}: {det}")
                 special_data["VALOR"] = str(len(seleccionadas))
                 special_data["NOTA"] = " || ".join(detalles)
@@ -516,10 +522,12 @@ if modo_app == T["nav_load"]:
             # 4. Trabajadoras Domésticas (SS-E-13)
             elif ref_auto == "SS-E-13":
                 is_special = True
-                opcion = st.selectbox("Requisitos de Acceso", ["Seleccione...", "Sí existen requisitos", "No existen requisitos"])
+                # AGREGADA KEY
+                opcion = st.selectbox("Requisitos de Acceso", ["Seleccione...", "Sí existen requisitos", "No existen requisitos"], key="sp_sel_dom")
                 texto = ""
                 if "Sí" in opcion:
-                    texto = st.text_area("Describa los requisitos")
+                    # AGREGADA KEY
+                    texto = st.text_area("Describa los requisitos", key="sp_txt_dom")
                 if opcion != "Seleccione...":
                     special_data["VALOR"] = opcion
                     special_data["NOTA"] = texto
@@ -532,9 +540,11 @@ if modo_app == T["nav_load"]:
                 is_special = True
                 col_a, col_b = st.columns(2)
                 with col_a:
-                    mat = st.number_input("Días Maternidad (0 = No Info)", min_value=0)
+                    # AGREGADA KEY
+                    mat = st.number_input("Días Maternidad (0 = No Info)", min_value=0, key="sp_num_mat")
                 with col_b:
-                    pat = st.number_input("Días Paternidad (0 = No Info)", min_value=0)
+                    # AGREGADA KEY
+                    pat = st.number_input("Días Paternidad (0 = No Info)", min_value=0, key="sp_num_pat")
                 special_data["VALOR"] = f"M:{mat}|P:{pat}"
                 special_data["NOTA"] = ""
                 special_data["UNIDAD"] = "Días"
@@ -542,10 +552,12 @@ if modo_app == T["nav_load"]:
             # 6. Medios de Difusión (SS-P-35)
             elif ref_auto == "SS-P-35":
                 is_special = True
-                no_info = st.checkbox("No hay información disponible")
+                # AGREGADA KEY
+                no_info = st.checkbox("No hay información disponible", key="sp_chk_noinfo")
                 texto = ""
                 if not no_info:
-                    texto = st.text_area("Describa características y cobertura")
+                    # AGREGADA KEY
+                    texto = st.text_area("Describa características y cobertura", key="sp_txt_medios")
                     special_data["VALOR"] = "Info Disponible"
                 else:
                     special_data["VALOR"] = "No Info"
@@ -555,10 +567,12 @@ if modo_app == T["nav_load"]:
             # 8. Cobertura Rural (SS-R-13)
             elif ref_auto == "SS-R-13":
                 is_special = True
-                no_info = st.checkbox("No Info")
+                # AGREGADA KEY
+                no_info = st.checkbox("No Info", key="sp_chk_noinfo_rur")
                 val = 0.0
                 if not no_info:
-                    val = st.number_input("Porcentaje (%)", 0.0, 100.0, format="%.2f")
+                    # AGREGADA KEY
+                    val = st.number_input("Porcentaje (%)", 0.0, 100.0, format="%.2f", key="sp_num_rur")
                     special_data["VALOR"] = str(val)
                 else:
                     special_data["VALOR"] = "No Info"
@@ -622,7 +636,6 @@ if modo_app == T["nav_load"]:
                             final_nota = special_data["NOTA"]
                             final_des = "Total Nacional"
                             
-                            # Concatenar estado si existe para especiales
                             if m_calidad:
                                 final_nota = f"{m_calidad} | {final_nota}" if final_nota else m_calidad
                         else:
@@ -668,8 +681,31 @@ if modo_app == T["nav_load"]:
                     guardar_en_sheet(df_to_save)
                     st.toast(T["toast_save"], icon="🎉")
                     st.balloons()
+                    
+                    # --- LIMPIEZA AUTOMÁTICA DEL FORMULARIO ---
                     st.session_state.df_buffer = pd.DataFrame()
                     st.cache_data.clear()
+                    
+                    # Lista de Keys a borrar (Todas MENOS País, Derecho y Año)
+                    keys_to_clear = [
+                        "sel_agr", "sel_cat", "sel_ind", 
+                        "sel_des", "input_val", "sel_uni", "sel_fue", "sel_fue_sp", 
+                        "sel_calidad", "sel_calidad_sp", "chk_prog", "chk_tran",
+                        # Keys especiales
+                        "sp_tratados", "sp_rad_bin", "sp_txt_bin", "sp_sel_dom", "sp_txt_dom",
+                        "sp_num_mat", "sp_num_pat", "sp_chk_noinfo", "sp_txt_medios", 
+                        "sp_chk_noinfo_rur", "sp_num_rur"
+                    ]
+                    
+                    # Borrar dinámicas del loop de normas (0 a 10 por seguridad)
+                    for i in range(10):
+                        keys_to_clear.append(f"sp_chk_norma_{i}")
+                        keys_to_clear.append(f"sp_txt_norma_{i}")
+
+                    for k in keys_to_clear:
+                        if k in st.session_state:
+                            del st.session_state[k]
+                            
                     st.rerun()
                 except Exception as e:
                     st.error(str(e))
