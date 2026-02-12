@@ -299,7 +299,6 @@ st.markdown('<div class="sticky-header">', unsafe_allow_html=True)
 header_container = st.container()
 
 with header_container:
-    # Ajustamos ancho de columnas para el título nuevo más largo
     col_title, col_nav, col_settings = st.columns([2.3, 1.7, 1])
 
     with col_settings:
@@ -320,8 +319,6 @@ with header_container:
     with col_title:
         title_color = "#F2F2F2" if dark_mode else "#011936"
         link_oea = "https://www.oas.org/ext/es/derechos-humanos/gtpss"
-        
-        # HTML: Enlace que contiene Logo pequeño + Título
         st.markdown(f"""
             <a href="{link_oea}" target="_blank" style="text-decoration: none; display: flex; align-items: center; gap: 10px; padding-top: 12px;">
                 <img src="data:image/png;base64,{img_base64}" style="height: 32px; width: auto;">
@@ -348,7 +345,6 @@ with header_container:
 st.markdown('</div>', unsafe_allow_html=True)
 st.markdown("---")
 
-# CSS ESTILOS
 if dark_mode:
     st.markdown(f"""
     <style>
@@ -424,6 +420,7 @@ else:
     section[data-testid="stSidebar"] {{ display: none; }}
     </style>
     """, unsafe_allow_html=True)
+
 # =============================================================================
 # MODULE 1: DATA ENTRY
 # =============================================================================
@@ -597,6 +594,10 @@ if modo_app == T["nav_load"]:
             # --- BOTÓN DE ACCIÓN ---
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button(T["manual_btn"], type="primary", use_container_width=True):
+                # Captura segura de datos principales (evitar variables flotantes)
+                final_agr = str(m_agr) if m_agr else ""
+                final_cat = str(m_cat) if m_cat else ""
+                
                 valid = False
                 if is_special:
                     if special_data.get("VALOR") and m_fue: valid = True
@@ -610,8 +611,10 @@ if modo_app == T["nav_load"]:
                         if is_special:
                             final_val = special_data["VALOR"]
                             final_nota = special_data["NOTA"]
+                            final_des = "Total Nacional" # FORZADO
                         else:
                             final_val = m_val
+                            final_des = m_des if m_des else ""
                             parts = []
                             if m_calidad: parts.append(m_calidad)
                             if chk_progreso: parts.append("Señal de Progreso")
@@ -620,11 +623,11 @@ if modo_app == T["nav_load"]:
 
                         new_row = {
                             "DERECHO": der_sel,
-                            "AGRUPAMIENTO": m_agr if m_agr else "",
-                            "CATEGORIA": m_cat if m_cat else "",
+                            "AGRUPAMIENTO": final_agr,
+                            "CATEGORIA": final_cat,
                             "INDICADOR": nombre_ind,
                             "REF_INDICADOR": ref_auto,
-                            "DESAGREGACION": m_des if m_des else "",
+                            "DESAGREGACION": final_des,
                             "VALOR": final_val,
                             "UNIDAD": m_uni,
                             "ANIO": anio_sel,
@@ -714,7 +717,6 @@ elif modo_app == T["nav_view"]:
         indicadores_cargados = df_show_kpi["REF_INDICADOR"].nunique() if not df_show_kpi.empty else 0
         meta_total, metas_cat = calcular_metas_catalogo(filtro_derecho if filtro_derecho else None)
         
-        # --- AQUÍ ESTÁ EL BLOQUE FALTANTE RESTAURADO ---
         cargados_cat = {"Estructurales": 0, "Procesos": 0, "Resultados": 0}
         if not df_show_kpi.empty:
             for cat in df_show_kpi["CATEGORIA"].unique():
@@ -726,7 +728,6 @@ elif modo_app == T["nav_view"]:
                     cargados_cat["Procesos"] += count
                 elif "Resultado" in cat_str:
                     cargados_cat["Resultados"] += count
-        # ------------------------------------------------
 
         st.divider()
         text_color = "#F2F2F2" if dark_mode else "#011936"
