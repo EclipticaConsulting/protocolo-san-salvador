@@ -472,7 +472,6 @@ if modo_app == T["nav_load"]:
                 is_special = True
                 st.markdown("##### ¿Existe Incorporación / Cobertura?")
                 opcion = st.radio("Seleccione opción:", ["Sí", "No"], horizontal=True, label_visibility="collapsed")
-                # Feedback Visual
                 if opcion == "Sí":
                     st.success("✅ Has seleccionado: SÍ")
                     texto_detalle = st.text_area("Detalle de la información cualitativa")
@@ -698,6 +697,20 @@ elif modo_app == T["nav_view"]:
         indicadores_cargados = df_show_kpi["REF_INDICADOR"].nunique() if not df_show_kpi.empty else 0
         meta_total, metas_cat = calcular_metas_catalogo(filtro_derecho if filtro_derecho else None)
         
+        # --- AQUÍ ESTÁ EL BLOQUE FALTANTE RESTAURADO ---
+        cargados_cat = {"Estructurales": 0, "Procesos": 0, "Resultados": 0}
+        if not df_show_kpi.empty:
+            for cat in df_show_kpi["CATEGORIA"].unique():
+                cat_str = str(cat).strip()
+                count = df_show_kpi[df_show_kpi["CATEGORIA"] == cat]["REF_INDICADOR"].nunique()
+                if "Estructural" in cat_str:
+                    cargados_cat["Estructurales"] += count
+                elif "Proceso" in cat_str:
+                    cargados_cat["Procesos"] += count
+                elif "Resultado" in cat_str:
+                    cargados_cat["Resultados"] += count
+        # ------------------------------------------------
+
         st.divider()
         text_color = "#F2F2F2" if dark_mode else "#011936"
         col_main = st.columns([1, 2, 1])
