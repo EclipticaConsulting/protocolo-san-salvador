@@ -8,6 +8,7 @@ import time
 import base64
 import re
 import unicodedata
+import json
 
 # --- IMPORTACIÓN DE DATOS ---
 try:
@@ -39,13 +40,15 @@ def get_base64_image(image_path: str) -> str:
 # -----------------------------
 st.set_page_config(page_title="Protocolo de San Salvador - Eclíptica", page_icon="🌎", layout="wide")
 
+# 1. CARGAMOS LA IMAGEN AL PRINCIPIO
 img_base64 = get_base64_image("watermark_protocolo.png")
+
 # -----------------------------
 # Texts
 # -----------------------------
 TEXTOS = {
     "ES": {
-        "title": "Sistema de Indicadores - Protocolo de San Salvador (Versión beta)",
+        "title": "Seguimiento de Indicadores - Protocolo de San Salvador (Versión beta)",
         "nav_load": "Gestión de Registros",
         "nav_view": "Dashboard",
         "meta_country": "País del Informe (*)",
@@ -62,7 +65,7 @@ TEXTOS = {
         "toast_save": "Datos guardados correctamente."
     },
     "EN": {
-        "title": "Indicator System - San Salvador Protocol (Beta version)",
+        "title": "San Salvador Protocol",
         "nav_load": "Record Management",
         "nav_view": "Control Dashboard",
         "meta_country": "Report Country (*)",
@@ -236,6 +239,44 @@ def crear_donut(valor, meta, color_fill, color_empty, titulo_centro, text_color)
     )
     return fig
 
+def normalizar_valor(valor_str):
+    v = str(valor_str).strip()
+    v_l = v.lower()
+    if v_l in ["si", "sí", "yes", "cumple", "true"]: return 100.0, "SÍ", True, True
+    if v_l in ["no", "no cumple", "false"]: return 0.0, "NO", True, True
+    if not v_l or v_l in ["otro", "nan", "none", "incompleto", "."]: return 0.0, "Sin Dato", False, False
+    is_pct = "%" in v_l
+    try:
+        v_num = re.sub(r"[^\d.,-]", "", v_l)
+        v_num = v_num.replace(",", ".")
+        f = float(v_num)
+        es_porcentaje = is_pct or (0 <= f <= 100)
+        return f, v, True, es_porcentaje
+    except Exception:
+        return 0.0, v, False, False
+
+def clamp_0_100(x):
+    try: return max(0.0, min(100.0, float(x)))
+    except: return 0.0
+
+def preparar_serie_por_anio(df_context, display_text, anios):
+    if df_context.empty: return pd.DataFrame()
+    d = df_context.copy()
+    d = d[d["DISPLAY_TEXT"] == display_text]
+    d = d[d["ANIO"].astype(str).isin([str(a) for a in anios])].copy()
+    if d.empty: return pd.DataFrame()
+    norm = d["VALOR"].apply(normalizar_valor)
+    d["VAL_NUM"] = [x[0] for x in norm]
+    d["VAL_TXT"] = [x[1] for x in norm]
+    d["ES_VALIDO"] = [x[2] for x in norm]
+    d["ES_PCT"] = [x[3] for x in norm]
+    d["__valid_rank"] = d["ES_VALIDO"].astype(int)
+    d.sort_values(["ANIO", "__valid_rank"], ascending=[True, False], inplace=True)
+    d = d.drop_duplicates(subset=["ANIO"], keep="first").copy()
+    d.drop(columns=["__valid_rank"], inplace=True)
+    d.sort_values("ANIO", inplace=True)
+    return d
+
 def ordenar_indicadores_logico(df):
     if df.empty: return []
     mapa_prioridad = {"Estructural": 1, "Proceso": 2, "Resultado": 3}
@@ -252,13 +293,15 @@ def ordenar_indicadores_logico(df):
     return df_temp["DISPLAY_TEXT"].unique().tolist()
 
 # -----------------------------
-# THEME CSS
+# UI Header + Theme
 # -----------------------------
 st.markdown('<div class="sticky-header">', unsafe_allow_html=True)
 header_container = st.container()
 
 with header_container:
-    col_title, col_nav, col_settings = st.columns([1.5, 2.5, 1])
+    # Ajustamos ancho de columnas para el título nuevo más largo
+    col_title, col_nav, col_settings = st.columns([2.3, 1.7, 1])
+
     with col_settings:
         sub_c1, sub_c2 = st.columns([1.2, 0.8])
         with sub_c1:
@@ -266,37 +309,52 @@ with header_container:
             lang = "ES" if idioma == "Español" else "EN"
             T = TEXTOS[lang]
         with sub_c2:
-            if "dark_mode" not in st.session_state: st.session_state.dark_mode = False
+            if "dark_mode" not in st.session_state:
+                st.session_state.dark_mode = False
             icon_display = "🌙" if st.session_state.dark_mode else "☀️"
             if st.button(icon_display, key="btn_theme_toggle", use_container_width=True):
                 st.session_state.dark_mode = not st.session_state.dark_mode
                 st.rerun()
             dark_mode = st.session_state.dark_mode
+
     with col_title:
         title_color = "#F2F2F2" if dark_mode else "#011936"
-        st.markdown(f"<h3 style='margin:0; padding-top:15px; font-weight:700; color:{title_color};'>{T['title']}</h3>", unsafe_allow_html=True)
+        link_oea = "https://www.oas.org/ext/es/derechos-humanos/gtpss"
+        
+        # HTML: Enlace que contiene Logo pequeño + Título
+        st.markdown(f"""
+            <a href="{link_oea}" target="_blank" style="text-decoration: none; display: flex; align-items: center; gap: 10px; padding-top: 12px;">
+                <img src="data:image/png;base64,{img_base64}" style="height: 32px; width: auto;">
+                <h3 style="margin:0; font-weight:700; font-size: 18px; color:{title_color}; line-height: 1.2;">{T['title']}</h3>
+            </a>
+            """, unsafe_allow_html=True)
+
     with col_nav:
-        if "nav_index" not in st.session_state: st.session_state.nav_index = 0
+        if "nav_index" not in st.session_state:
+            st.session_state.nav_index = 0
         opciones_nav = [T['nav_load'], T['nav_view']]
-        modo_app = st.radio("", opciones_nav, index=st.session_state.nav_index, horizontal=True, label_visibility="collapsed", key="nav_radio")
+        if st.session_state.nav_index >= len(opciones_nav):
+            st.session_state.nav_index = 0
+        modo_app = st.radio(
+            "",
+            opciones_nav,
+            index=st.session_state.nav_index,
+            horizontal=True,
+            label_visibility="collapsed",
+            key="nav_radio"
+        )
         st.session_state.nav_index = 0 if modo_app == T['nav_load'] else 1
 
 st.markdown('</div>', unsafe_allow_html=True)
 st.markdown("---")
-# Nota: Si ya moviste esta línea al inicio del script como hablamos antes, bórrala de aquí.
-# Si no la moviste, déjala aquí para que el CSS funcione.
-}
+
+# CSS ESTILOS
 if dark_mode:
     st.markdown(f"""
     <style>
     .stApp {{ background-color: #011936; color: #F2F2F2; }}
-    .stApp::before {{ 
-        content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-        background-image: url("data:image/png;base64,{img_base64}"); 
-        background-size: 80%; background-position: center; background-repeat: no-repeat; 
-        /* AJUSTE: Opacidad subida de 0.08 a 0.15 */
-        background-attachment: fixed; opacity: 0.15; filter: grayscale(100%) invert(1); z-index: 0; pointer-events: none; 
-    }}
+    /* FONDO DARK */
+    .stApp::before {{ content: ""; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-image: url("data:image/png;base64,{img_base64}"); background-size: 50%; background-position: center; background-repeat: repeat; background-attachment: fixed; opacity: 0.15; filter: grayscale(100%) invert(1); z-index: 0; pointer-events: none; }}
     .sticky-header {{ position: fixed; top: 0; left: 0; width: 100%; z-index: 99999; background-color: rgba(0, 15, 31, 0.85); backdrop-filter: blur(12px); padding-bottom: 15px; padding-top: 10px; border-bottom: 1px solid rgba(70, 83, 98, 0.5); }}
     .main .block-container {{ z-index: 1; position: relative; padding-top: 8rem !important; }}
     .stApp > header {{ display: none !important; }}
@@ -322,13 +380,8 @@ else:
     st.markdown(f"""
     <style>
     .stApp {{ background-color: #F2F2F2; color: #011936; }}
-    .stApp::before {{ 
-        content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-        background-image: url("data:image/png;base64,{img_base64}"); 
-        background-size: 80%; background-position: center; background-repeat: no-repeat; 
-        /* AJUSTE: Opacidad subida de 0.08 a 0.15 */
-        background-attachment: fixed; opacity: 0.15; filter: grayscale(100%); z-index: 0; pointer-events: none; 
-    }}
+    /* FONDO LIGHT */
+    .stApp::before {{ content: ""; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-image: url("data:image/png;base64,{img_base64}"); background-size: 50%; background-position: center; background-repeat: repeat; background-attachment: fixed; opacity: 0.15; filter: grayscale(100%); z-index: 0; pointer-events: none; }}
     .sticky-header {{ position: fixed; top: 0; left: 0; width: 100%; z-index: 99999; background-color: rgba(224, 224, 224, 0.85); backdrop-filter: blur(12px); padding-bottom: 15px; padding-top: 10px; border-bottom: 2px solid #9D8420; }}
     .main .block-container {{ z-index: 1; position: relative; padding-top: 8rem !important; }}
     .stApp > header {{ display: none !important; }}
@@ -353,6 +406,7 @@ else:
     section[data-testid="stSidebar"] {{ display: none; }}
     </style>
     """, unsafe_allow_html=True)
+
 # =============================================================================
 # MODULE 1: DATA ENTRY
 # =============================================================================
@@ -418,7 +472,7 @@ if modo_app == T["nav_load"]:
                 is_special = True
                 st.markdown("##### ¿Existe Incorporación / Cobertura?")
                 opcion = st.radio("Seleccione opción:", ["Sí", "No"], horizontal=True, label_visibility="collapsed")
-                # Feedback Visual Inmediato
+                # Feedback Visual
                 if opcion == "Sí":
                     st.success("✅ Has seleccionado: SÍ")
                     texto_detalle = st.text_area("Detalle de la información cualitativa")
@@ -446,7 +500,7 @@ if modo_app == T["nav_load"]:
                 special_data["NOTA"] = " || ".join(detalles)
                 special_data["UNIDAD"] = "Normas"
 
-            # 4. Trabajadoras Domésticas (SS-E-13) <-- CORREGIDO
+            # 4. Trabajadoras Domésticas (SS-E-13)
             elif ref_auto == "SS-E-13":
                 is_special = True
                 opcion = st.selectbox("Requisitos de Acceso", ["Seleccione...", "Sí existen requisitos", "No existen requisitos"])
@@ -651,6 +705,17 @@ elif modo_app == T["nav_view"]:
             st.markdown(f"<h3 style='text-align:center; color:{text_color}'><b>Progreso Global ({filtro_anio})</b></h3>", unsafe_allow_html=True)
             st.plotly_chart(crear_donut(indicadores_cargados, meta_total, "#00C851", "#ff4444", f"{indicadores_cargados}/{meta_total}", text_color), use_container_width=True, key="glob")
 
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown(f"<h5 style='text-align:center; color:{text_color}'><b>Estructurales</b></h5>", unsafe_allow_html=True)
+            st.plotly_chart(crear_donut(cargados_cat["Estructurales"], metas_cat["Estructurales"], "#33b5e5", "#ff4444", f"{cargados_cat['Estructurales']}/{metas_cat['Estructurales']}", text_color), use_container_width=True, key="est")
+        with c2:
+            st.markdown(f"<h5 style='text-align:center; color:{text_color}'><b>Procesos</b></h5>", unsafe_allow_html=True)
+            st.plotly_chart(crear_donut(cargados_cat["Procesos"], metas_cat["Procesos"], "#ffbb33", "#ff4444", f"{cargados_cat['Procesos']}/{metas_cat['Procesos']}", text_color), use_container_width=True, key="proc")
+        with c3:
+            st.markdown(f"<h5 style='text-align:center; color:{text_color}'><b>Resultados</b></h5>", unsafe_allow_html=True)
+            st.plotly_chart(crear_donut(cargados_cat["Resultados"], metas_cat["Resultados"], "#aa66cc", "#ff4444", f"{cargados_cat['Resultados']}/{metas_cat['Resultados']}", text_color), use_container_width=True, key="res")
+
         st.divider()
         st.markdown(f"<h3 style='color:{text_color}'><b>{T['dash_chart_bar']}</b></h3>", unsafe_allow_html=True)
         
@@ -710,12 +775,11 @@ elif modo_app == T["nav_view"]:
                                     st.info(sel)
                             except: pass
 
-                # D. Doméstico (SS-E-13) <-- CORREGIDO
+                # D. Doméstico (SS-E-13)
                 elif ref_pura == "SS-E-13":
                     cols = st.columns(len(df_chart))
                     for i, row in enumerate(df_chart.itertuples()):
                         with cols[i]:
-                            # Extraer solo la respuesta corta para la tarjeta (Sí/No)
                             val_short = "Sí" if "Sí" in str(row.VALOR) else "No"
                             st.metric(label=str(row.ANIO), value=val_short)
                             if val_short == "Sí":
