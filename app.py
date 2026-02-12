@@ -578,7 +578,8 @@ if modo_app == T["nav_load"]:
                     chk_progreso = st.checkbox("Señal de Progreso", key="chk_prog")
                     chk_transversal = st.checkbox("P. Transversal", key="chk_tran")
                 with c_row1_4:
-                    opciones_calidad = ["", "NO INFO", "INFO AMBIGUA", "NO APLICA"]
+                    # Opciones de Estado para Estándar
+                    opciones_calidad = ["", "No registrado", "Información insuficiente", "Completado"]
                     m_calidad = st.selectbox("Estado / Nota", opciones_calidad, key="sel_calidad")
                 
                 c_row2_1, c_row2_2 = st.columns([1, 1.5])
@@ -587,14 +588,22 @@ if modo_app == T["nav_load"]:
                 with c_row2_2:
                     m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue", index=None, placeholder="Seleccione...")
             else:
-                m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue_sp", index=None, placeholder="Seleccione...")
-                m_des = "Total Nacional" 
+                # --- AQUÍ AÑADIMOS FUENTE Y ESTADO PARA LOS ESPECIALES ---
+                c_sp1, c_sp2 = st.columns(2)
+                with c_sp1:
+                    m_fue = st.selectbox("Fuente", LISTA_FUENTES, key="sel_fue_sp", index=None, placeholder="Seleccione...")
+                with c_sp2:
+                    # Opciones de Estado para Especiales
+                    opciones_calidad = ["", "No registrado", "Información insuficiente", "Completado"]
+                    m_calidad = st.selectbox("Estado / Nota", opciones_calidad, key="sel_calidad_sp")
+                
+                m_des = "Total Nacional" # FORZADO
                 m_uni = special_data.get("UNIDAD", "")
 
             # --- BOTÓN DE ACCIÓN ---
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button(T["manual_btn"], type="primary", use_container_width=True):
-                # Captura segura de datos principales (evitar variables flotantes)
+                # Captura segura de datos principales
                 final_agr = str(m_agr) if m_agr else ""
                 final_cat = str(m_cat) if m_cat else ""
                 
@@ -611,7 +620,11 @@ if modo_app == T["nav_load"]:
                         if is_special:
                             final_val = special_data["VALOR"]
                             final_nota = special_data["NOTA"]
-                            final_des = "Total Nacional" # FORZADO
+                            final_des = "Total Nacional"
+                            
+                            # Concatenar estado si existe para especiales
+                            if m_calidad:
+                                final_nota = f"{m_calidad} | {final_nota}" if final_nota else m_calidad
                         else:
                             final_val = m_val
                             final_des = m_des if m_des else ""
@@ -856,7 +869,17 @@ elif modo_app == T["nav_view"]:
                     for i, row in enumerate(df_chart.itertuples()):
                         try:
                             val = float(row.VALOR) if row.VALOR != "No Info" else 0
-                            fig = go.Figure(go.Bar(x=['Cobertura'], y=[val], text=[f"{val}%"], textposition='auto', marker_color='#33b5e5'))
+                            # COLOR DINÁMICO DEL TEXTO
+                            text_bar_color = "#011936" if not dark_mode else "#F2F2F2"
+                            
+                            fig = go.Figure(go.Bar(
+                                x=['Cobertura'], 
+                                y=[val], 
+                                text=[f"{val}%"], 
+                                textposition='auto', 
+                                marker_color='#33b5e5',
+                                textfont=dict(color=text_bar_color) # <--- AQUÍ ESTÁ EL CAMBIO
+                            ))
                             fig.update_yaxes(range=[0, 100])
                             fig.update_layout(title=str(row.ANIO), height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
                             with cols[i]:
