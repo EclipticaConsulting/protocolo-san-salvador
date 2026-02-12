@@ -793,7 +793,8 @@ elif modo_app == T["nav_view"]:
             )
             st.plotly_chart(
                 crear_donut(indicadores_cargados, meta_total, "#00C851", color_missing, f"{indicadores_cargados}/{meta_total}", text_color),
-                use_container_width=True
+                use_container_width=True,
+                key="chart_donut_global"
             )
 
         c1, c2, c3 = st.columns(3)
@@ -802,21 +803,24 @@ elif modo_app == T["nav_view"]:
             st.plotly_chart(
                 crear_donut(cargados_cat["Estructurales"], metas_cat["Estructurales"], "#33b5e5", color_missing,
                             f"{cargados_cat['Estructurales']}/{metas_cat['Estructurales']}", text_color),
-                use_container_width=True
+                use_container_width=True,
+                key="chart_donut_est"
             )
         with c2:
             st.markdown(f"<h5 style='text-align:center; color:{text_color}'><b>Procesos</b></h5>", unsafe_allow_html=True)
             st.plotly_chart(
                 crear_donut(cargados_cat["Procesos"], metas_cat["Procesos"], "#ffbb33", color_missing,
                             f"{cargados_cat['Procesos']}/{metas_cat['Procesos']}", text_color),
-                use_container_width=True
+                use_container_width=True,
+                key="chart_donut_proc"
             )
         with c3:
             st.markdown(f"<h5 style='text-align:center; color:{text_color}'><b>Resultados</b></h5>", unsafe_allow_html=True)
             st.plotly_chart(
                 crear_donut(cargados_cat["Resultados"], metas_cat["Resultados"], "#aa66cc", color_missing,
                             f"{cargados_cat['Resultados']}/{metas_cat['Resultados']}", text_color),
-                use_container_width=True
+                use_container_width=True,
+                key="chart_donut_res"
             )
 
         st.divider()
@@ -914,7 +918,7 @@ elif modo_app == T["nav_view"]:
                             plot_bgcolor='rgba(0,0,0,0)'
                         )
 
-                        st.plotly_chart(fig_donut, use_container_width=True)
+                        st.plotly_chart(fig_donut, use_container_width=True, key=f"chart_anillo_{i}")
 
         elif not sel_ind_comp:
             st.info("👈 Seleccione un indicador arriba para comenzar el análisis.")
